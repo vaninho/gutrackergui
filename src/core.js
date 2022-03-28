@@ -4,6 +4,7 @@ const readLine = require('readline')
 const puppeteer = require('puppeteer')
 const fsR = require('fs-reverse')
 const readLastLines = require('read-last-lines');
+const chromium = require('chromium')
 
 const PATH_FUELGAMES = '/AppData/LocalLow/FuelGames/'
 const PATH_MASTERLOG = '/logs/latest/master.txt'
@@ -71,7 +72,10 @@ async function getEnemyInfo() {
 }
 
 async function getDeck(enemyInfo) {
-  const browser = await puppeteer.launch()
+  const getChromiumExecPath = () => {
+    return puppeteer.executablePath().replace('app.asar', 'app.asar.unpacked');
+  }
+  const browser = await puppeteer.launch({ executablePath: getChromiumExecPath() })
   const page = await browser.newPage()
   console.log(URL_GUDECKS_PLAYERSTATS + enemyInfo.playerID)
   await page.goto(URL_GUDECKS_PLAYERSTATS + enemyInfo.playerID, { waitUntil: 'networkidle0' })
