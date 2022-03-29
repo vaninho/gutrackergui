@@ -95,6 +95,7 @@ async function getDeck(enemyInfo) {
   }
   browser.close()
   deck.pop() // Removing the last card because its a Hero Power
+  deck = deck.sort((a,b) => {return a.mana > b.mana ? 1 : -1})
   return deck
 
 }

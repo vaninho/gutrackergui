@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getCardsPlayed, main } from '../core';
-export default class DeckList extends React.Component {
+import Card from './card';
+export default class CardList extends React.Component {
 
   constructor(props) {
     super(props)
@@ -18,7 +19,7 @@ export default class DeckList extends React.Component {
   async updateDeck() {
     console.log('updateDeck')
     let deck = this.state.deck
-    if(deck.length == 0) {
+    if (deck.length == 0) {
       deck = await main()
     } else {
       deck = await getCardsPlayed(this.state.deck)
@@ -30,14 +31,12 @@ export default class DeckList extends React.Component {
     return (
       <div>
         <span hidden={!(this.state.deck.length == 0)}>Aguardando jogo começar...</span>
-        <div align="center" className='deck-list'>
-          {this.state.deck.length != 0 && this.state.deck.map((i, index) => (
-            <div key={i.name} className='card'>
-              <div className='card-mana'>{i.mana}</div>
-              <div className='card-name'>{i.name}</div>
-              <div className='card-count'>{i.count}</div>
-            </div>
-          ))}
+        <div className='card-list'>
+          <ul className='deck-class'>
+            {this.state.deck != 0 && this.state.deck.map((i) => {
+              return <Card card={i} key={i.name} />
+            })}
+          </ul>
         </div>
       </div>
     )

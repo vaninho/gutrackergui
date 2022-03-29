@@ -4,7 +4,7 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
 import AppBar from './components/app-bar';
-import DeckList from './components/deck-list';
+import CardList from './components/card-list';
 
 export default class App extends React.Component {
 
@@ -17,7 +17,7 @@ export default class App extends React.Component {
                     </DialogTitle>
 
                     <DialogContent className={'mainContent'}>
-                        <DeckList />
+                        <CardList />
                     </DialogContent>
                 </Dialog>
             </div>
