@@ -6,17 +6,19 @@ let mainWindow
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 1000,
 
     // Window's Visual Features 
     frame: false, // Remove top bar 
     useContentSize: false, // Inhibit window size display 
 
+
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true
-    }
+    },
+    alwaysOnTop: true,
   });
 
   mainWindow.loadURL(url.format({
@@ -25,7 +27,7 @@ const createWindow = () => {
     slashes: true
   }));
 
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   mainWindow.on('closed', () => {
     mainWindow = null
