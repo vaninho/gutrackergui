@@ -4,30 +4,31 @@ html {
 
 *,
 *:before,
-*:after { /* Inherit box-sizing to make it easier to change the property for components that leverage other behavior; see http://css-tricks.com/inheriting-box-sizing-probably-slightly-better-best-practice/ */
+*:after {
+	/* Inherit box-sizing to make it easier to change the property for components that leverage other behavior; see http://css-tricks.com/inheriting-box-sizing-probably-slightly-better-best-practice/ */
 	box-sizing: inherit;
 }
 
 body {
-    margin: 0px;
+	margin: 0px;
 }
 
 .mainContent {
-    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
-    margin: 0px;
-    border: 3px solid #494440;
-    background-color: #1d1d1d;
-    color: white;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	margin: 0px;
+	border: 3px solid #494440;
+	background-color: #1d1d1d;
+	color: white;
 }
 
 ul {
-    display: block;
-    list-style-type: disc;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-    padding-inline-start: 40px;
+	display: block;
+	list-style-type: disc;
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+	margin-inline-start: 0px;
+	margin-inline-end: 0px;
+	padding-inline-start: 40px;
 }
 
 .card-list ul {
@@ -54,7 +55,6 @@ ul {
 	padding: 0;
 	margin: 0 0 2px;
 	position: relative;
-	z-index: 1;
 }
 
 .card-frame {
@@ -69,7 +69,8 @@ ul {
 	border-right: 0;
 }
 
-.card-frame:active, .card-frame:focus {
+.card-frame:active,
+.card-frame:focus {
 	text-decoration: none;
 }
 
@@ -77,6 +78,7 @@ ul {
 	text-decoration: none;
 	background: #555;
 }
+
 .card-frame span.card-cost {
 	padding: 5px 0 0;
 	color: #fff;
@@ -86,7 +88,7 @@ ul {
 	position: absolute;
 	left: 0;
 	top: 0;
-    text-shadow: 1px 1px 0px black;
+	text-shadow: 1px 1px 0px black;
 }
 
 .card-frame span.card-name {
@@ -110,7 +112,6 @@ ul {
 
 .card-frame span.card-count {
 	position: absolute;
-	z-index: 2;
 	right: 0;
 	background: #2d2d2d;
 	color: #fff;
@@ -125,13 +126,6 @@ ul {
 	width: 75px;
 }
 
-.card-frame span.card-image {
-	position: absolute;
-	right: 30px;
-	top: 0;
-	z-index: 1;
-}
-
 .arena-tier-list .card-frame span.card-image {
 	right: 0;
 }
@@ -144,8 +138,7 @@ ul {
 	opacity: 1;
 }
 
-#img-tooltip {
-	position: absolute;
-	z-index: 3;
-	display: none;
+.tooltip {
+	-webkit-clip-path: inset(20px 40px 20px 40px);
+	clip-path: inset(20px 40px 20px 40px);
 }

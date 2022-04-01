@@ -49,7 +49,6 @@ async function getEnemyInfo() {
     }
 
     if (line.indexOf(PATTERN_ENEMY_PLAYER_NAME) >= 0) {
-      console.log('ENTROU')
       const enemyPlayerNameIndex = line.indexOf(PATTERN_ENEMY_PLAYER_NAME) + PATTERN_ENEMY_PLAYER_NAME.length
       const enemyName = line.substring(enemyPlayerNameIndex, line.indexOf("'", enemyPlayerNameIndex))
       PATTERN_ENEMY_CARD_PLAYED = PATTERN_ENEMY_CARD_PLAYED.replace('{enemyName}', enemyName) // Replacing the enemyName in our pattern
@@ -69,6 +68,8 @@ async function getEnemyInfo() {
       }
     }
   }
+  // Game didnt start yet, cant find infos.
+  return { 'playerID': '0', 'targetGod': '0' }
 }
 
 async function getDeck(enemyInfo) {
@@ -86,16 +87,17 @@ async function getDeck(enemyInfo) {
   for (let i = 0; i < cards.length; i++) {
     const mana = await cards[i].$eval('.deck-list-item-mana', e => e.innerText)
     const name = await cards[i].$eval("[class='deck-list-item-name']", e => e.innerText)
+    const backgroundImage = await page.evaluate(el => window.getComputedStyle(el).backgroundImage, await cards[i].$('.deck-list-item-background'))
     let countPromise = await cards[i].$('.deck-list-item-count')
     let count = '1'
     if (countPromise) {
       count = await (await countPromise.getProperty('innerText')).jsonValue()
     }
-    deck = deck.concat({ 'name': name, 'mana': mana, 'count': parseInt(count.replace('x', '')) })
+    deck = deck.concat({ 'name': name, 'mana': mana, 'count': parseInt(count.replace('x', '')), 'prot': backgroundImage.substring(backgroundImage.lastIndexOf('/'), backgroundImage.lastIndexOf('.')) })
   }
   browser.close()
   deck.pop() // Removing the last card because its a Hero Power
-  deck = deck.sort((a,b) => {return a.mana > b.mana ? 1 : -1})
+  deck = deck.sort((a, b) => { return a.mana > b.mana ? 1 : -1 })
   return deck
 
 }
