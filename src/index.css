@@ -63,6 +63,14 @@ ul {
 	position: relative;
 	height: 40px;
 	border-right: 5px solid black;
+	background-repeat: no-repeat;
+	background-position: right;
+	background-position-y: 20%;
+	background-size: cover;
+}
+
+.card-frame[style*=".jpg"] {
+	background-position: right;
 }
 
 .arena-tier-list .card-frame {
@@ -76,7 +84,6 @@ ul {
 
 .card-frame:hover {
 	text-decoration: none;
-	background: #555;
 }
 
 .card-frame span.card-cost {
@@ -137,8 +144,6 @@ ul {
 .card-frame:hover span.card-image {
 	opacity: 1;
 }
-
 .tooltip {
-	-webkit-clip-path: inset(20px 40px 20px 40px);
-	clip-path: inset(20px 40px 20px 40px);
+	padding: 0px 0px !important;
 }

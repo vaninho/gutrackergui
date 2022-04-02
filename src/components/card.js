@@ -42,19 +42,23 @@ export default class Card extends React.Component {
   }
 
   getUrlImage = () => {
-    return 'https://card.godsunchained.com/?id=' + this.card.prot.substring(1) + '&q=4&png=true&format=card'
+    return 'https://card.godsunchained.com/?id=' + this.card.prot + '&q=4&png=true&format=card'
   }
 
 
   render() {
     return (
 
-      // Fazer border-right com a cor da raridade da classe - grey comum, blue rare, purple epic, orange legendary
-      <li className='card-frame' style={{ borderRight: `5px solid ${this.getRarityColor()}` }} data-html={true} data-tip data-for={this.card.name.split(" ").join("")}>
-        <ReactTooltip html={true} id={this.card.name.split(" ").join("")} effect='solid'>
-          {ReactDOMServer.renderToStaticMarkup(<img src={this.getUrlImage()} />)}
+      <li className='card-frame' style={{
+        borderRight: `5px solid ${this.getRarityColor()}`,
+        backgroundImage: `linear-gradient(to left, transparent,#1d1d1d), url('https://images.godsunchained.com/art2/250/${this.card.prot}.jpg')`,
+        backgroundPosition: 'right',
+        backgroundPositionY: '20%',
+        backgroundRepeat: 'no-repeat'
+      }} data-html={true} data-tip data-for={this.card.name.split(" ").join("")}>
+        <ReactTooltip className='tooltip' html={true} id={this.card.name.split(" ").join("")} effect='solid' >
+          {ReactDOMServer.renderToStaticMarkup(<img src={this.getUrlImage()} width='200px' height='auto' />)}
         </ReactTooltip>
-        {/* Fazer as cores conforme a classe, Khaki - light, SpringGreen nature, MediumOrchid deception, Maroon war, PaleTurquoise mage, Turquoise death */}
         <span className='card-cost' style={{ backgroundColor: this.getGodColor() }}>{this.card.mana}</span>
         <span className='card-name'>{this.card.name}</span>
         <span className='card-count'>{this.card.count}</span>

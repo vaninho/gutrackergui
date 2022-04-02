@@ -93,7 +93,7 @@ async function getDeck(enemyInfo) {
     if (countPromise) {
       count = await (await countPromise.getProperty('innerText')).jsonValue()
     }
-    deck = deck.concat({ 'name': name, 'mana': mana, 'count': parseInt(count.replace('x', '')), 'prot': backgroundImage.substring(backgroundImage.lastIndexOf('/'), backgroundImage.lastIndexOf('.')) })
+    deck = deck.concat({ 'name': name, 'mana': mana, 'count': parseInt(count.replace('x', '')), 'prot': backgroundImage.substring(backgroundImage.lastIndexOf('/')+1, backgroundImage.lastIndexOf('.')) })
   }
   browser.close()
   deck.pop() // Removing the last card because its a Hero Power
