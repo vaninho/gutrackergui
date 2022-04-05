@@ -32,7 +32,7 @@ export default class Card extends React.Component {
         return 'MediumOrchid'
       case 'war':
         return 'Maroon'
-      case 'mage':
+      case 'magic':
         return 'PaleTurquoise'
       case 'death':
         return 'Turquoise'

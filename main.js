@@ -6,8 +6,8 @@ let mainWindow
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 600,
-    height: 1000,
+    width: 250,
+    height: 750,
 
     // Window's Visual Features 
     frame: false, // Remove top bar 
@@ -19,6 +19,8 @@ const createWindow = () => {
       enableRemoteModule: true
     },
     alwaysOnTop: true,
+    x: 0,
+    y: 100,
   });
 
   mainWindow.loadURL(url.format({

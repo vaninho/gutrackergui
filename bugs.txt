@@ -1,4 +1,0 @@
-Mage card color
-start the transparency > tamanho da mana
-bug das cores ao iniciar
-segundo jogo nao baixa as cartas
