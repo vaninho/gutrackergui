@@ -12,13 +12,15 @@ const PATTERN_TARGETDATA = 'TargetData:'
 const PATTERN_ENEMY_PLAYERID = "playerID:'" // dont forget the ', since its important to index
 const PATTERN_TARGETGOD = "targetGod:'" // dont forget the ', since its important to index
 const PATTERN_LOCAL_PLAYERID = 'Sending RegisterPlayer msg... apolloID: '
+const PATTERN_FIRST_LINE = 'GameConfiguration.LoadGameConfigurationAtRuntime'
 const PATTERN_LAST_LINE = 'Settings.ini successfully saved'
 const PATTERN_ENEMY_CARD_PLAYED = 'CombatRecorder: {enemyName} -> Event: Played | Card: ' // need to replace the enemyName in execution
 let PATTERN_ENEMY_CARD_PLAYED_CHANGED = ''
 const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
+const URL_API_GODS_PROTO = 'https://api.godsunchained.com/v0/proto/'
 
 var linesAlreadyRemoved = []
-var fullyRead = false
+var fullyReaded = false
 
 const path = os.homedir() + PATH_MASTERLOG
 
@@ -67,7 +69,7 @@ async function getEnemyInfo() {
   return { 'playerID': '0', 'targetGod': '0' }
 }
 
-async function getDeck(enemyInfo) {
+async function getInitialDeck(enemyInfo) {
   const getChromiumExecPath = () => {
     return puppeteer.executablePath().replace('app.asar', 'app.asar.unpacked');
   }
@@ -81,7 +83,7 @@ async function getDeck(enemyInfo) {
   for (let i = 0; i < cards.length; i++) {
     const backgroundImage = await page.evaluate(el => window.getComputedStyle(el).backgroundImage, await cards[i].$('.deck-list-item-background'))
     const prot = backgroundImage.substring(backgroundImage.lastIndexOf('/') + 1, backgroundImage.lastIndexOf('.'))
-    const apiResponseProto = await axios.get('https://api.godsunchained.com/v0/proto/' + prot)
+    const apiResponseProto = await axios.get(URL_API_GODS_PROTO + prot)
     const god = apiResponseProto.data.god
     const rarity = apiResponseProto.data.rarity
     const mana = apiResponseProto.data.mana
@@ -100,7 +102,7 @@ async function getDeck(enemyInfo) {
 
 }
 
-async function getCardsPlayed(deck) {
+async function removeCardsPlayed(deck) {
   const rl = readLine.createInterface({
     input: fsR(path),
     crlfDelay: Infinity
@@ -111,25 +113,25 @@ async function getCardsPlayed(deck) {
       return []
     }
 
-    if (linesAlreadyRemoved.includes(line) && fullyRead) {
+    if (linesAlreadyRemoved.includes(line) && fullyReaded) {
       rl.close()
       return deck
     }
 
-    // Found a card playeds
+    // Found a card played
     if (line.indexOf(PATTERN_ENEMY_CARD_PLAYED_CHANGED) >= 0) {
-      for (var card in deck) {
-        if (deck[card].name === line.substring(line.indexOf(PATTERN_ENEMY_CARD_PLAYED_CHANGED) + PATTERN_ENEMY_CARD_PLAYED_CHANGED.length) && !linesAlreadyRemoved.includes(line)) {
+      for (var i in deck) {
+        if (deck[i].name === line.substring(line.indexOf(PATTERN_ENEMY_CARD_PLAYED_CHANGED) + PATTERN_ENEMY_CARD_PLAYED_CHANGED.length) && !linesAlreadyRemoved.includes(line)) {
           linesAlreadyRemoved = linesAlreadyRemoved.concat(line)
-          deck[card].count = deck[card].count - 1
-          if (deck[card].count === 0) {
-            deck.splice(card, 1)
+          deck[i].count = deck[i].count - 1
+          if (deck[i].count === 0) {
+            deck.splice(i, 1)
           }
         }
 
       }
-      if (line.indexOf('GameConfiguration.LoadGameConfigurationAtRuntime')) {
-        fullyRead = true
+      if (line.indexOf(PATTERN_FIRST_LINE)) {
+        fullyReaded = true
       }
     }
   }
@@ -137,14 +139,14 @@ async function getCardsPlayed(deck) {
   return deck
 
 }
-async function main() {
+async function getDeck() {
   const enemyInfo = await getEnemyInfo()
   if (enemyInfo === null || enemyInfo.playerID === '0') {
     return []
   }
-  return await getDeck(enemyInfo)
+  return await getInitialDeck(enemyInfo)
 
 }
 
-module.exports.main = main
-module.exports.getCardsPlayed = getCardsPlayed
+module.exports.getDeck = getDeck
+module.exports.removeCardsPlayed = removeCardsPlayed

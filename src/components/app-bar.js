@@ -1,9 +1,8 @@
-import React from 'react';
 import IconButton from '@material-ui/core/IconButton';
 import Close from '@material-ui/icons/Close';
 import Minimize from '@material-ui/icons/Minimize';
-import CropSquare from '@material-ui/icons/CropSquare';
-import FilterNone from '@material-ui/icons/FilterNone';
+import Button from '@material-ui/core/Button';
+import React from 'react';
 
 
 // Capture Electron Main Window 
@@ -35,13 +34,13 @@ export default class AppBar extends React.Component {
             flexGrow: 1,
             margin: 0,
             marginLeft: 6,
-            fontSize: 20
+            fontSize: 16
         }
 
         return (
             <div style={appBarStyle}>
-                {/* <AppMenu mainApp={this.state.mainApp} /> */}
                 <h1 style={appH1}>GU Tracker</h1>
+                <Button variant='contained' size='small' style={appButton} onClick={()=>{require('electron').shell.openExternal('https://www.paypal.com/donate/?hosted_button_id=KMYN4WU5L8FJ8')}}>Donate</Button>
 
                 <IconButton color="inherit" size="small" style={appButton}
                     onClick={() => { window.minimize() }}>

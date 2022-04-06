@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { getCardsPlayed, main } from '../core';
+import React from 'react';
+import { getDeck, removeCardsPlayed } from '../core';
 import Card from './card';
 export default class CardList extends React.Component {
 
@@ -10,20 +10,15 @@ export default class CardList extends React.Component {
   }
 
   async componentDidMount() {
-    const deck = await main()
+    const deck = await getDeck()
     this.setState({ deck: deck })
 
     this.interval = setInterval(this.updateDeck, 10000)
   }
 
   async updateDeck() {
-    console.log('updateDeck')
     let deck = this.state.deck
-    if (deck.length == 0) {
-      deck = await main()
-    } else {
-      deck = await getCardsPlayed(this.state.deck)
-    }
+    deck.length == 0 ? await getDeck() : await removeCardsPlayed(this.state.deck)
     this.setState({ deck: deck })
   }
 
