@@ -1,5 +1,5 @@
 {
-  "name": "gutrackergui",
+  "name": "godsunchainedtracker",
   "displayName": "Gods Unchained Tracker",
   "description": "A enemy cards tracker for the game Gods Unchained",
   "version": "1.1.0",
@@ -13,7 +13,7 @@
   "main": "app/main.js",
   "scripts": {
     "postinstall": "install-app-deps",
-    "build": "gulp build",
+    "build": "gulp build --dir",
     "start": "gulp",
     "dist": "gulp dist"
   },
@@ -58,25 +58,16 @@
     "utf-8-validate": "^5.0.9"
   },
   "build": {
-    "appId": "com.vaniomeurer.gutrackergui",
-    "linux": {
-      "target": [
-        "dir"
-      ]
-    },
+    "appId": "br.com.vaniomeurer.gutrackergui",
+    "produtctName": "Gods Unchained Tracker",
     "win": {
+      "icon": "icon.png",
       "target": [
-        {
-          "target": "dir",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
+        "nsis"
       ]
     },
-    "mac": {
-      "category": "your.app.category.type"
+    "nsis": {
+      "license": "LICENSE"
     }
   }
 }
