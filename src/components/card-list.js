@@ -13,10 +13,11 @@ export default class CardList extends React.Component {
     const deck = await getDeck()
     this.setState({ deck: deck })
 
-    this.interval = setInterval(this.updateDeck, 10000)
+    this.interval = setInterval(this.updateDeck, 20000)
   }
 
   async updateDeck() {
+    console.log('updateDeck')
     let deck = this.state.deck
     deck.length == 0 ? await getDeck() : await removeCardsPlayed(this.state.deck)
     this.setState({ deck: deck })

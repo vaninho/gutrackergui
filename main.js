@@ -16,7 +16,7 @@ const createWindow = () => {
 
     webPreferences: {
       nodeIntegration: true,
-      enableRemoteModule: true
+      enableRemoteModule: true,
     },
     alwaysOnTop: true,
     x: mainWindowStateKeeper.x,

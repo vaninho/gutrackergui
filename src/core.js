@@ -13,7 +13,7 @@ const PATTERN_ENEMY_PLAYERID = "playerID:'" // dont forget the ', since its impo
 const PATTERN_TARGETGOD = "targetGod:'" // dont forget the ', since its important to index
 const PATTERN_LOCAL_PLAYERID = 'Sending RegisterPlayer msg... apolloID: '
 const PATTERN_FIRST_LINE = 'GameConfiguration.LoadGameConfigurationAtRuntime'
-const PATTERN_LAST_LINE = 'Settings.ini successfully saved'
+const PATTERN_LAST_LINES = ['Client handlers deregistered', 'Settings.ini successfully saved']
 const PATTERN_ENEMY_CARD_PLAYED = 'CombatRecorder: {enemyName} -> Event: Played | Card: ' // need to replace the enemyName in execution
 let PATTERN_ENEMY_CARD_PLAYED_CHANGED = ''
 const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
@@ -25,10 +25,13 @@ var fullyReaded = false
 const path = os.homedir() + PATH_MASTERLOG
 
 async function getEnemyInfo() {
+  console.log('core:getEnemyInfo')
 
   const lastLine = await readLastLines.read(path, 1)
 
-  if (lastLine.indexOf(PATTERN_LAST_LINE) >= 0) {
+  if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1] >= 0)) {
+    console.log(lastLine)
+    console.log('core:getDeck-LASTLINE')
     return { 'playerID': '0', 'targetGod': '0' }
   }
 
@@ -61,6 +64,7 @@ async function getEnemyInfo() {
         const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
         const targetGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
         rl.close()
+        console.log('core:getDeck-PLAYER: ' + playerID)
         return { playerID, targetGod }
       }
     }
@@ -70,6 +74,7 @@ async function getEnemyInfo() {
 }
 
 async function getInitialDeck(enemyInfo) {
+  console.log('core:getInitialDeck')
   const getChromiumExecPath = () => {
     return puppeteer.executablePath().replace('app.asar', 'app.asar.unpacked');
   }
@@ -109,7 +114,7 @@ async function removeCardsPlayed(deck) {
   })
   for await (const line of rl) {
 
-    if (line.indexOf(PATTERN_LAST_LINE) >= 0) {
+    if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
       return []
     }
 
@@ -140,6 +145,7 @@ async function removeCardsPlayed(deck) {
 
 }
 async function getDeck() {
+  console.log('core:getDeck')
   const enemyInfo = await getEnemyInfo()
   if (enemyInfo === null || enemyInfo.playerID === '0') {
     return []
