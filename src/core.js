@@ -25,13 +25,10 @@ var fullyReaded = false
 const path = os.homedir() + PATH_MASTERLOG
 
 async function getEnemyInfo() {
-  console.log('core:getEnemyInfo')
 
   const lastLine = await readLastLines.read(path, 1)
 
-  if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1] >= 0)) {
-    console.log(lastLine)
-    console.log('core:getDeck-LASTLINE')
+  if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
     return { 'playerID': '0', 'targetGod': '0' }
   }
 
@@ -64,7 +61,6 @@ async function getEnemyInfo() {
         const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
         const targetGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
         rl.close()
-        console.log('core:getDeck-PLAYER: ' + playerID)
         return { playerID, targetGod }
       }
     }
@@ -74,7 +70,6 @@ async function getEnemyInfo() {
 }
 
 async function getInitialDeck(enemyInfo) {
-  console.log('core:getInitialDeck')
   const getChromiumExecPath = () => {
     return puppeteer.executablePath().replace('app.asar', 'app.asar.unpacked');
   }
@@ -145,7 +140,6 @@ async function removeCardsPlayed(deck) {
 
 }
 async function getDeck() {
-  console.log('core:getDeck')
   const enemyInfo = await getEnemyInfo()
   if (enemyInfo === null || enemyInfo.playerID === '0') {
     return []

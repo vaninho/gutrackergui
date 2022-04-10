@@ -17,9 +17,8 @@ export default class CardList extends React.Component {
   }
 
   async updateDeck() {
-    console.log('updateDeck')
     let deck = this.state.deck
-    deck.length == 0 ? await getDeck() : await removeCardsPlayed(this.state.deck)
+    deck = deck.length == 0 ? await getDeck() : await removeCardsPlayed(deck)
     this.setState({ deck: deck })
   }
 
