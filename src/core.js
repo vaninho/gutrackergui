@@ -17,8 +17,7 @@ const PATTERN_LAST_LINES = ['Client handlers deregistered', 'Settings.ini succes
 const PATTERN_ENEMY_CARD_PLAYED = 'CombatRecorder: {enemyName} -> Event: Played | Card: ' // need to replace the enemyName in execution
 let PATTERN_ENEMY_CARD_PLAYED_CHANGED = ''
 const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
-const URL_API_GODS_PROTO = 'https://api.godsunchained.com/v0/proto/'
-const FULL_CARDS = getFullListCards()
+var FULL_CARDS = []
 
 var linesAlreadyRemoved = []
 var fullyReaded = false
@@ -29,9 +28,9 @@ async function getEnemyInfo() {
 
   const lastLine = await readLastLines.read(path, 1)
 
-  // if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-  //   return { 'playerID': '0', 'targetGod': '0' }
-  // }
+  if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+    return { 'playerID': '0', 'targetGod': '0' }
+  }
 
   const rl = readLine.createInterface({
     input: fs.createReadStream(path),
@@ -68,6 +67,10 @@ async function getEnemyInfo() {
 }
 
 async function getInitialDeck(enemyInfo) {
+  if(FULL_CARDS.length === 0) {
+    FULL_CARDS = await getFullListCards()
+  }
+  console.time('puppeter')
   const getChromiumExecPath = () => {
     return puppeteer.executablePath().replace('app.asar', 'app.asar.unpacked');
   }
@@ -77,42 +80,43 @@ async function getInitialDeck(enemyInfo) {
   let link = await page.evaluate(a => a.getAttribute('href'), await page.$('.deck-results-square-shadow-' + enemyInfo.targetGod.toLowerCase() + ' a'))
   console.log(link)
   browser.close()
-  link = link.replace('/decks/','')
+  console.timeEnd('puppeter')
+  link = link.replace('/decks/', '')
   const deckCode = link.substring(0, link.indexOf('?'))
-  console.log(deckCode)
+  console.time('decodeDeck')
   const decodedDeck = decodeDeck(deckCode)
-  console.log(decodeDeck)
+  console.timeEnd('decodeDeck')
   var deck = []
-  const cardsCount = 0
-  console.time('full')
-  console.log(FULL_CARDS)
+  let cardsCount = 0
+  console.time('matchingcards')
   for (var i = 0; i < FULL_CARDS.length; i++) {
-    if (FULL_CARDS[i].god !== 'neutral' && FULL_CARDS[i].god != enemyInfo.targetGod.toLowerCase()) {
+    if (FULL_CARDS[i].god !== 'neutral' && FULL_CARDS[i].god !== enemyInfo.targetGod.toLowerCase()) {
       continue
     }
-    decodedDeckLabel: for (var z = 0; z < decodedDeck.length; i++) {
-      if (FULL_CARDS[i].lib_id === decodedDeck[z].lib_id) {
+    decodedDeckLabel: for (var z = 0; z < decodedDeck.length; z++) {
+      if (FULL_CARDS[i].lib_id === decodedDeck[z]) {
+        console.log('INDEX: ' + i + ' - id: ' + FULL_CARDS[i].id + ' - ' + FULL_CARDS[i].name + ' -lib_id ' + FULL_CARDS[i].lib_id)
         for (var j = 0; j < deck.length; j++) {
-          if (deck[j].prot === decodedDeck[z].id) {
+          if (deck[j].prot === FULL_CARDS[i].id) {
             deck[j].count = deck[j].count + 1
             cardsCount++
             continue decodedDeckLabel
           }
         }
-        deck.concat({
+        deck = deck.concat({
           'prot': FULL_CARDS[i].id, 'god': FULL_CARDS[i].god, 'rarity': FULL_CARDS[i].rarity,
-          'mana': FULL_CARDS[i].mana, 'name': FULL_CARDS[i].name
+          'mana': FULL_CARDS[i].mana, 'name': FULL_CARDS[i].name, 'count': 1
         })
         cardsCount++
       }
     }
     if (cardsCount >= 30) {
+      console.log('Chegamos a count 30')
       break
     }
   }
+  console.timeEnd('matchingcards')
   deck = deck.sort((a, b) => { return a.mana > b.mana ? 1 : -1 })
-  console.log('deck: '+deck)
-  console.timeEnd('full')
   return deck
 
 }
@@ -177,7 +181,7 @@ async function getFullListCards() {
 }
 
 function decodeDeck(deckCode) {
-  console.log('decodeDeck: '+deckCode)
+  console.log('decodeDeck: ' + deckCode)
   const codes = deckCode.split('_')
   const GU = codes[0]
   const version = codes[1]
@@ -185,14 +189,14 @@ function decodeDeck(deckCode) {
   const cards = codes[3]
   var result = []
   for (var i = 0; i < cards.length; i = i + 3) {
-      result[result.length] = 'L' + b52todec(cards.substring(i, i + 1)) + '-' + fillWithZero(b52todec(cards.substring(i + 1, i + 3)))
+    result[result.length] = 'L' + b52todec(cards.substring(i, i + 1)) + '-' + fillWithZero(b52todec(cards.substring(i + 1, i + 3)))
   }
   console.log(result)
   return result
 }
 
 function b52todec(value) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVXXYZabcdefghijklmnopqrstuvxxyz'
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
   const numbers = '0123456789'
   var valueSize = value.length
   var alphabetIndex = {}
@@ -200,31 +204,32 @@ function b52todec(value) {
   const numbersSize = numbers.length
   var g = "string" == typeof H ? "" : []
   for (var i = 0; i < valueSize; i++) {
-      alphabetIndex[i] = alphabet.indexOf(value[i])
+    alphabetIndex[i] = alphabet.indexOf(value[i])
   }
 
   do {
-      for (var j = 0, N = 0, B = 0; B < valueSize; B++) {
-          j = j * alphabetSize + alphabetIndex[B]
-          if (j >= numbersSize) {
-              alphabetIndex[N++] = parseInt(j / numbersSize, 10)
-              j %= numbersSize
-          } else {
-              N > 0 && (value[N++] = 0)
-          }
+    for (var j = 0, N = 0, B = 0; B < valueSize; B++) {
+      j = j * alphabetSize + alphabetIndex[B]
+      if (j >= numbersSize) {
+        alphabetIndex[N++] = parseInt(j / numbersSize, 10)
+        j %= numbersSize
+      } else {
+        N > 0 && (value[N++] = 0)
       }
-      valueSize = N
-      g = numbers.slice(j, j + 1).concat(g)
+    }
+    valueSize = N
+    g = numbers.slice(j, j + 1).concat(g)
   } while (0 !== N);
   return g
 }
 function fillWithZero(x) {
-  const size = 3
-  do {
-      x = "0" + x
-  } while (x.length < size)
+  const size = 3 - x.length
+  for (let i = 0; i < size; i++) {
+    x = '0' + x
+  }
   return x
 }
+
 
 module.exports.getDeck = getDeck
 module.exports.removeCardsPlayed = removeCardsPlayed

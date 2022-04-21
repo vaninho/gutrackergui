@@ -2,7 +2,7 @@
   "name": "godsunchainedtracker",
   "displayName": "Gods Unchained Tracker",
   "description": "A enemy cards tracker for the game Gods Unchained",
-  "version": "1.0.0-alpha",
+  "version": "1.1.0-alpha",
   "license": "MIT",
   "repository": "https://github.com/vaninho/gutrackergui",
   "publisher": "vaninho",
