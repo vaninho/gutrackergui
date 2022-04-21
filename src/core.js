@@ -18,6 +18,7 @@ const PATTERN_ENEMY_CARD_PLAYED = 'CombatRecorder: {enemyName} -> Event: Played 
 let PATTERN_ENEMY_CARD_PLAYED_CHANGED = ''
 const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
 const URL_API_GODS_PROTO = 'https://api.godsunchained.com/v0/proto/'
+const FULL_CARDS = getFullListCards()
 
 var linesAlreadyRemoved = []
 var fullyReaded = false
@@ -28,10 +29,9 @@ async function getEnemyInfo() {
 
   const lastLine = await readLastLines.read(path, 1)
 
-  if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-    return { 'playerID': '0', 'targetGod': '0' }
-  }
-
+  // if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+  //   return { 'playerID': '0', 'targetGod': '0' }
+  // }
 
   const rl = readLine.createInterface({
     input: fs.createReadStream(path),
@@ -39,7 +39,6 @@ async function getEnemyInfo() {
   })
   let localPlayerId = null
   for await (const line of rl) {
-
 
     // getting id from local player
     if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
@@ -51,7 +50,6 @@ async function getEnemyInfo() {
       const enemyName = line.substring(enemyPlayerNameIndex, line.indexOf("'", enemyPlayerNameIndex))
       PATTERN_ENEMY_CARD_PLAYED_CHANGED = PATTERN_ENEMY_CARD_PLAYED.replace('{enemyName}', enemyName) // Replacing the enemyName in our pattern
     }
-
 
     // getting enemy info
     if (line.indexOf(PATTERN_TARGETDATA) >= 0) {
@@ -76,28 +74,45 @@ async function getInitialDeck(enemyInfo) {
   const browser = await puppeteer.launch({ executablePath: getChromiumExecPath() })
   const page = await browser.newPage()
   await page.goto(URL_GUDECKS_PLAYERSTATS + enemyInfo.playerID, { waitUntil: 'networkidle0' })
-  await page.click('.deck-results-square-shadow-' + enemyInfo.targetGod.toLowerCase() + ' a')
-  await page.waitForSelector('.deck-list-item')
-  let deck = []
-  const cards = await page.$$('.deck-list-item')
-  for (let i = 0; i < cards.length; i++) {
-    const backgroundImage = await page.evaluate(el => window.getComputedStyle(el).backgroundImage, await cards[i].$('.deck-list-item-background'))
-    const prot = backgroundImage.substring(backgroundImage.lastIndexOf('/') + 1, backgroundImage.lastIndexOf('.'))
-    const apiResponseProto = await axios.get(URL_API_GODS_PROTO + prot)
-    const god = apiResponseProto.data.god
-    const rarity = apiResponseProto.data.rarity
-    const mana = apiResponseProto.data.mana
-    const name = apiResponseProto.data.name
-    let countPromise = await cards[i].$('.deck-list-item-count')
-    let count = '1'
-    if (countPromise) {
-      count = await (await countPromise.getProperty('innerText')).jsonValue()
-    }
-    deck = deck.concat({ 'name': name, 'mana': mana, 'count': parseInt(count.replace('x', '')), 'prot': prot, 'god': god, 'rarity': rarity })
-  }
+  let link = await page.evaluate(a => a.getAttribute('href'), await page.$('.deck-results-square-shadow-' + enemyInfo.targetGod.toLowerCase() + ' a'))
+  console.log(link)
   browser.close()
-  deck.pop() // Removing the last card because its a Hero Power
+  link = link.replace('/decks/','')
+  const deckCode = link.substring(0, link.indexOf('?'))
+  console.log(deckCode)
+  const decodedDeck = decodeDeck(deckCode)
+  console.log(decodeDeck)
+  var deck = []
+  const cardsCount = 0
+  console.time('full')
+  console.log(FULL_CARDS)
+  for (var i = 0; i < FULL_CARDS.length; i++) {
+    if (FULL_CARDS[i].god !== 'neutral' && FULL_CARDS[i].god != enemyInfo.targetGod.toLowerCase()) {
+      continue
+    }
+    decodedDeckLabel: for (var z = 0; z < decodedDeck.length; i++) {
+      if (FULL_CARDS[i].lib_id === decodedDeck[z].lib_id) {
+        for (var j = 0; j < deck.length; j++) {
+          if (deck[j].prot === decodedDeck[z].id) {
+            deck[j].count = deck[j].count + 1
+            cardsCount++
+            continue decodedDeckLabel
+          }
+        }
+        deck.concat({
+          'prot': FULL_CARDS[i].id, 'god': FULL_CARDS[i].god, 'rarity': FULL_CARDS[i].rarity,
+          'mana': FULL_CARDS[i].mana, 'name': FULL_CARDS[i].name
+        })
+        cardsCount++
+      }
+    }
+    if (cardsCount >= 30) {
+      break
+    }
+  }
   deck = deck.sort((a, b) => { return a.mana > b.mana ? 1 : -1 })
+  console.log('deck: '+deck)
+  console.timeEnd('full')
   return deck
 
 }
@@ -145,7 +160,70 @@ async function getDeck() {
     return []
   }
   return await getInitialDeck(enemyInfo)
+}
 
+async function getFullListCards() {
+  console.time('getFullCards')
+  var cards = []
+  const listProto = await axios.get('https://api.godsunchained.com/v0/proto?perPage=9999')
+  listProto.data.records.forEach(proto => {
+    cards = cards.concat({
+      'id': proto.id, 'god': proto.god, 'rarity': proto.rarity,
+      'mana': proto.mana, 'name': proto.name, 'lib_id': proto.lib_id
+    })
+  });
+  console.timeEnd('getFullCards')
+  return cards
+}
+
+function decodeDeck(deckCode) {
+  console.log('decodeDeck: '+deckCode)
+  const codes = deckCode.split('_')
+  const GU = codes[0]
+  const version = codes[1]
+  const god = codes[2]
+  const cards = codes[3]
+  var result = []
+  for (var i = 0; i < cards.length; i = i + 3) {
+      result[result.length] = 'L' + b52todec(cards.substring(i, i + 1)) + '-' + fillWithZero(b52todec(cards.substring(i + 1, i + 3)))
+  }
+  console.log(result)
+  return result
+}
+
+function b52todec(value) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVXXYZabcdefghijklmnopqrstuvxxyz'
+  const numbers = '0123456789'
+  var valueSize = value.length
+  var alphabetIndex = {}
+  const alphabetSize = alphabet.length
+  const numbersSize = numbers.length
+  var g = "string" == typeof H ? "" : []
+  for (var i = 0; i < valueSize; i++) {
+      alphabetIndex[i] = alphabet.indexOf(value[i])
+  }
+
+  do {
+      for (var j = 0, N = 0, B = 0; B < valueSize; B++) {
+          j = j * alphabetSize + alphabetIndex[B]
+          if (j >= numbersSize) {
+              alphabetIndex[N++] = parseInt(j / numbersSize, 10)
+              j %= numbersSize
+          } else {
+              N > 0 && (value[N++] = 0)
+          }
+      }
+      valueSize = N
+      g = numbers.slice(j, j + 1).concat(g)
+  } while (0 !== N);
+  return g
+}
+function fillWithZero(x) {
+  const size = 3
+  do {
+      x = "0" + x
+  } while (x.length < size)
+  return x
 }
 
 module.exports.getDeck = getDeck

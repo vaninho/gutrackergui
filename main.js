@@ -17,7 +17,7 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
-      devTools: false
+      // devTools: false
     },
     alwaysOnTop: true,
     x: mainWindowStateKeeper.x,
@@ -35,7 +35,7 @@ const createWindow = () => {
   }))
 
 
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
   mainWindow.on('closed', () => {
     mainWindow = null
   })
