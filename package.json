@@ -41,7 +41,7 @@
     "@types/material-ui": "^0.21.12",
     "axios": "^0.26.1",
     "bufferutil": "^4.0.6",
-    "electron-is-dev": "^1.1.0",
+    "electron-is-dev": "^2.0.0",
     "electron-settings": "^4.0.2",
     "fs-reverse": "0.0.3",
     "ini": "^3.0.0",
