@@ -24,7 +24,7 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-react": "^7.0.0",
     "@babel/runtime": "^7.17.8",
-    "babel-jest": "^25.3.0",
+    "babel-jest": "^27.5.1",
     "electron": "11.5.0",
     "electron-builder": "^20.44.4",
     "electron-react-devtools": "^0.5.3",
