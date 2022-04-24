@@ -1,2 +1,0 @@
-Check why the game isnt removing cards sometimes in second match.
-Not getting infront of game after first game.
