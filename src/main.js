@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const core = require('./core')
 
 let mainWindow, cardListWindow
 
@@ -78,10 +79,17 @@ ipcMain.handle('mainWindowMinimize', (event, args) => {
 })
 
 ipcMain.handle('openDonatePage', (event) => {
-  require('./core').openDonatePage()
+  core.openDonatePage()
+})
+
+ipcMain.handle('getOpponentInfo', async (event) => {
+  const opponentInfo = await core.getOpponentInfo()
+  console.log(core.getInitialDeck(opponentInfo))
+  return opponentInfo
 })
 
 ipcMain.handle('openCardListWindow', (event) => {
+  console.log('openCardListWindow')
   cardListWindow = new BrowserWindow({
     frame: false,
     useContentSize: false,
@@ -93,5 +101,6 @@ ipcMain.handle('openCardListWindow', (event) => {
     }
   })
   cardListWindow.loadURL(LIST_CARDS_WINDOW_WEBPACK_ENTRY)
+  cardListWindow.webContents.openDevTools()
   cardListWindow.show()
 })
