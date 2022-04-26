@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { ConsoleMessage } = require('puppeteer');
 const core = require('./core')
 
 let mainWindow, cardListWindow
@@ -63,6 +64,7 @@ ipcMain.handle('mainWindowClose', (event, args) => {
     }
     case 'listCard':
       cardListWindow.close()
+      cardListWindow = null
   }
 })
 
@@ -82,25 +84,48 @@ ipcMain.handle('openDonatePage', (event) => {
   core.openDonatePage()
 })
 
-ipcMain.handle('getOpponentInfo', async (event) => {
-  const opponentInfo = await core.getOpponentInfo()
-  console.log(core.getInitialDeck(opponentInfo))
-  return opponentInfo
-})
-
-ipcMain.handle('openCardListWindow', (event) => {
-  console.log('openCardListWindow')
+function openCardListWindow() {
   cardListWindow = new BrowserWindow({
     frame: false,
     useContentSize: false,
     width: 800,
     height: 600,
     transparent: true,
+    alwaysOnTop: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   })
   cardListWindow.loadURL(LIST_CARDS_WINDOW_WEBPACK_ENTRY)
-  cardListWindow.webContents.openDevTools()
-  cardListWindow.show()
+}
+
+ipcMain.handle('getOpponentInfo', async () => {
+  const opponentInfo = await core.getOpponentInfo()
+  if (opponentInfo.id !== 0 && !cardListWindow) {
+    openCardListWindow()
+  }
+})
+
+ipcMain.handle('getDeck', async (event) => {
+  const deck = await core.getDeck()
+  if (deck.length === 0 && cardListWindow) {
+    cardListWindow.close()
+  }
+  if (deck.length !== 0 && !cardListWindow) {
+    openCardListWindow()
+  }
+  return deck
+})
+
+ipcMain.handle('removeCardsPlayed', async (event, deck) => {
+  return await core.removeCardsPlayed(deck)
+})
+
+ipcMain.handle('ping', () => {
+  console.log('pong')
+})
+
+ipcMain.handle('showCardListWindow', () => {
+    cardListWindow.show()
 })

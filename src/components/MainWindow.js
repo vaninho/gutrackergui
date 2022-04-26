@@ -7,6 +7,20 @@ import Button from '@mui/material/Button';
 
 export default class MainWindow extends React.Component {
 
+    constructor(props) {
+        super(props)
+        this.verifyGameStart = this.verifyGameStart.bind(this)
+    }
+
+    async componentDidMount() {
+        window.guApp.getOpponentInfo()
+        setInterval(this.verifyGameStart, 20000)
+    }
+
+    async verifyGameStart() {
+        window.guApp.getOpponentInfo()
+    }
+
     render() {
         return (
             <Dialog fullScreen={Boolean("true")} open={Boolean("true")}>
@@ -15,7 +29,7 @@ export default class MainWindow extends React.Component {
                 </DialogTitle>
 
                 <DialogContent className={'mainContent'}>
-                    <Button variant='contained' size='small' onClick={() => {window.guApp.openCardListWindow()}}>Open CardList</Button>
+                    <Button variant='contained' size='small' onClick={() => { window.guApp.openCardListWindow() }}>Open CardList</Button>
                 </DialogContent>
             </Dialog>
         )

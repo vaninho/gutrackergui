@@ -1,20 +1,31 @@
 import React from 'react';
 import AppBar from './app-bar';
-import Button from '@mui/material/Button';
+import Card from './card'
 
 export default class ListCardsApp extends React.Component {
 
-
     constructor(props) {
         super(props)
-        this.handleClick = this.handleClick.bind(this)
+        this.state = { deck: [] }
+        this.updateDeck = this.updateDeck.bind(this)
     }
 
-    async handleClick(event) {
-        const res = await window.guApp.getOpponentInfo()
-        console.log(res)
+    async componentDidMount() {
+        console.log('componentMount')
+        const deck = await window.guApp.getDeck()
+        this.setState({ deck: deck })
+        if (deck.length !== 0) {
+            window.guApp.showCardListWindow()
+        }
+
+        setInterval(this.updateDeck, 20000)
     }
 
+    async updateDeck() {
+        let deck = this.state.deck
+        deck = deck.length == 0 ? await window.guApp.getDeck() : await window.guApp.removeCardsPlayed(deck)
+        this.setState({ deck: deck })
+    }
 
     render() {
         return (
@@ -22,8 +33,15 @@ export default class ListCardsApp extends React.Component {
                 <div>
                     <AppBar window='listCard' />
                 </div>
-                <div style={{ border: '1px solid BLACK' }}>
-                    <Button variant='contained' size='small' onClick={this.handleClick}>Pegar Nickname do oponente</Button>
+                <div>
+                    <div className='card-list'>
+                        <ul className='deck-class'>
+                            {this.state.deck != 0 && this.state.deck.map((i) => {
+                                return <Card card={i} key={(i.name + '' +i.count)} />
+                            })}
+                        </ul>
+                    </div>
+                    <h1 id='teste'></h1>
                 </div>
             </div>
         );

@@ -47,6 +47,7 @@
           "@electron-forge/plugin-webpack",
           {
             "mainConfig": "./webpack.main.config.js",
+            "devContentSecurityPolicy": "connect-src 'self' https://api.myapp.com 'unsafe-eval'",
             "renderer": {
               "config": "./webpack.renderer.config.js",
               "entryPoints": [
@@ -90,8 +91,8 @@
     "@mui/material": "^5.6.2",
     "axios": "^0.27.0",
     "electron-squirrel-startup": "^1.0.0",
-    "puppeteer-core": "^13.6.0",
-    "puppeteer-in-electron": "^3.0.5",
+    "fs-reverse": "0.0.3",
+    "puppeteer": "^13.6.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.3.0",
