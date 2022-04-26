@@ -11,14 +11,17 @@ export default class ListCardsApp extends React.Component {
     }
 
     async componentDidMount() {
-        console.log('componentMount')
-        const deck = await window.guApp.getDeck()
-        this.setState({ deck: deck })
-        if (deck.length !== 0) {
-            window.guApp.showCardListWindow()
-        }
 
-        setInterval(this.updateDeck, 20000)
+        await window.guApp.ping()
+        
+        window.guApp.getDeck().then((deck) => {
+            this.setState({deck: deck})
+            if (deck.length !== 0) {
+                window.guApp.showCardListWindow()
+            }
+        })
+
+        setInterval(this.updateDeck, 10000)
     }
 
     async updateDeck() {
@@ -37,7 +40,7 @@ export default class ListCardsApp extends React.Component {
                     <div className='card-list'>
                         <ul className='deck-class'>
                             {this.state.deck != 0 && this.state.deck.map((i) => {
-                                return <Card card={i} key={(i.name + '' +i.count)} />
+                                return <Card card={i} key={(i.name + '' + i.count)} />
                             })}
                         </ul>
                     </div>

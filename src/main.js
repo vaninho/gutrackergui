@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { ConsoleMessage } = require('puppeteer');
 const core = require('./core')
 
 let mainWindow, cardListWindow
@@ -30,7 +29,18 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  setInterval(verifyGameStart, 5000)
 };
+
+
+function verifyGameStart() {
+  core.getOpponentInfo().then((opponentInfo) => {
+    if (opponentInfo.id !== 0 && !cardListWindow) {
+      openCardListWindow()
+    }
+  })
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -100,13 +110,6 @@ function openCardListWindow() {
   cardListWindow.loadURL(LIST_CARDS_WINDOW_WEBPACK_ENTRY)
 }
 
-ipcMain.handle('getOpponentInfo', async () => {
-  const opponentInfo = await core.getOpponentInfo()
-  if (opponentInfo.id !== 0 && !cardListWindow) {
-    openCardListWindow()
-  }
-})
-
 ipcMain.handle('getDeck', async (event) => {
   const deck = await core.getDeck()
   if (deck.length === 0 && cardListWindow) {
@@ -122,10 +125,11 @@ ipcMain.handle('removeCardsPlayed', async (event, deck) => {
   return await core.removeCardsPlayed(deck)
 })
 
-ipcMain.handle('ping', () => {
-  console.log('pong')
+ipcMain.handle('showCardListWindow', () => {
+  cardListWindow.show()
 })
 
-ipcMain.handle('showCardListWindow', () => {
-    cardListWindow.show()
+ipcMain.handle('ping', () => {
+  console.log('ping')
+  return 'pong'
 })

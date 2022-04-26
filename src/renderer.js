@@ -10,7 +10,7 @@ const rootElement = document.getElementById('root')
 ReactDOM.render(
     <BrowserRouter>
         <Routes>
-            <Route path='main_window' element={<MainWindow />} />
+            <Route path='main_window' element={<MainWindow  />} />
             <Route path='list_cards_window' element={<ListCardsWindow />} />
         </Routes>
     </BrowserRouter>, rootElement);

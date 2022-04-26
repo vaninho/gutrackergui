@@ -3,23 +3,14 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import AppBar from './app-bar';
-import Button from '@mui/material/Button';
+import TextareaAutosize from '@mui/material/TextareaAutosize';
 
 export default class MainWindow extends React.Component {
 
     constructor(props) {
         super(props)
-        this.verifyGameStart = this.verifyGameStart.bind(this)
     }
 
-    async componentDidMount() {
-        window.guApp.getOpponentInfo()
-        setInterval(this.verifyGameStart, 20000)
-    }
-
-    async verifyGameStart() {
-        window.guApp.getOpponentInfo()
-    }
 
     render() {
         return (
@@ -29,7 +20,7 @@ export default class MainWindow extends React.Component {
                 </DialogTitle>
 
                 <DialogContent className={'mainContent'}>
-                    <Button variant='contained' size='small' onClick={() => { window.guApp.openCardListWindow() }}>Open CardList</Button>
+                    <h1>Hello!</h1>
                 </DialogContent>
             </Dialog>
         )

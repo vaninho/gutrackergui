@@ -37,10 +37,10 @@ function getLogPath() {
 export async function getOpponentInfo() {
     const lastLine = await readLastLines.read(path, 1)
 
-    // if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-    //     console.log('Game already over.')
-    //     return { 'id': '0', 'god': '0' }
-    // }
+    if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+        console.log('Game already over.')
+        return { 'id': '0', 'god': '0' }
+    }
 
     const rl = readLine.createInterface({
         input: fs.createReadStream(path),
@@ -85,7 +85,6 @@ export async function getInitialDeck(opponentInfo) {
     const page = await browser.newPage()
     await page.goto(URL_GUDECKS_PLAYERSTATS + opponentInfo.id, { waitUntil: 'networkidle0' })
     let link = await page.evaluate(a => a.getAttribute('href'), await page.$('.deck-results-square-shadow-' + opponentInfo.god.toLowerCase() + ' a'))
-    console.log(link)
     browser.close()
     console.timeEnd('puppeter')
     link = link.replace('/decks/', '')
@@ -135,9 +134,9 @@ export async function removeCardsPlayed(deck) {
     })
     for await (const line of rl) {
 
-        // if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-        //     return []
-        // }
+        if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+            return []
+        }
 
         if (linesAlreadyRemoved.includes(line) && fullyReaded) {
             console.log('leu tudo, retorna o deck como esta')
