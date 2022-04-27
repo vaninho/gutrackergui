@@ -34,12 +34,16 @@ const createWindow = () => {
 };
 
 
-function verifyGameStart() {
-  core.getOpponentInfo().then((opponentInfo) => {
-    if (opponentInfo.id !== 0 && !cardListWindow) {
-      openCardListWindow()
-    }
-  })
+async function verifyGameStart() {
+  const opponentInfo = await core.getOpponentInfo()
+  if (opponentInfo.id !== '0' && !cardListWindow) {
+    openCardListWindow()
+  }
+  if (opponentInfo.id === '0' && cardListWindow) {
+    cardListWindow.close()
+    cardListWindow = null
+  }
+  console.log('init verifyGameStart:' + cardListWindow)
 }
 
 // This method will be called when Electron has finished
@@ -108,14 +112,20 @@ function openCardListWindow() {
     }
   })
   cardListWindow.loadURL(LIST_CARDS_WINDOW_WEBPACK_ENTRY)
+  cardListWindow.on('show', () => {
+    setTimeout(() => {
+      cardListWindow.focus();
+    }, 200);
+  });
 }
 
 ipcMain.handle('getDeck', async (event) => {
   const deck = await core.getDeck()
-  if (deck.length === 0 && cardListWindow) {
+  console.log(deck)
+  if (deck.length === '0' && cardListWindow) {
     cardListWindow.close()
   }
-  if (deck.length !== 0 && !cardListWindow) {
+  if (deck.length !== '0' && !cardListWindow) {
     openCardListWindow()
   }
   return deck

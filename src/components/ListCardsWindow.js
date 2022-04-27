@@ -13,13 +13,12 @@ export default class ListCardsApp extends React.Component {
     async componentDidMount() {
 
         await window.guApp.ping()
-        
-        window.guApp.getDeck().then((deck) => {
-            this.setState({deck: deck})
-            if (deck.length !== 0) {
-                window.guApp.showCardListWindow()
-            }
-        })
+
+        const deck = await window.guApp.getDeck()
+        this.setState({ deck: deck })
+        if (deck.length !== 0) {
+            window.guApp.showCardListWindow()
+        }
 
         setInterval(this.updateDeck, 10000)
     }

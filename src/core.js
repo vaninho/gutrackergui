@@ -77,24 +77,25 @@ export async function getOpponentInfo() {
     return { 'id': '0', 'god': '0' }
 }
 
+var zaz = 0
 export async function getInitialDeck(opponentInfo) {
     if (FULL_CARDS.length === 0) {
         FULL_CARDS = await getFullListCards()
     }
+    console.log('getInitialDeck opponentInfo'+opponentInfo.id)
     const browser = await puppeteer.launch(puppeteer.executablePath())
     const page = await browser.newPage()
     await page.goto(URL_GUDECKS_PLAYERSTATS + opponentInfo.id, { waitUntil: 'networkidle0' })
     let link = await page.evaluate(a => a.getAttribute('href'), await page.$('.deck-results-square-shadow-' + opponentInfo.god.toLowerCase() + ' a'))
+    console.log('link '+link)
+    // test
+    // let link = '/decks/GU_1_4_KAaKAaKAbKAmKAnKAnCANCANCAmCAmCAnCCJCEHCEkCEkCEmCEqCErCErCFpCFpHBPIBCIBeIBgIBiIBiIBmIBsICO?godPowers=100127&creator=UkF&userId=1206296&archetype=Card Draw Magic'
     browser.close()
-    console.timeEnd('puppeter')
     link = link.replace('/decks/', '')
     const deckCode = link.substring(0, link.indexOf('?'))
-    console.time('decodeDeck')
     const decodedDeck = decodeDeck(deckCode)
-    console.timeEnd('decodeDeck')
     var deck = []
     let cardsCount = 0
-    console.time('matchingcards')
     for (var i = 0; i < FULL_CARDS.length; i++) {
         if (FULL_CARDS[i].god !== 'neutral' && FULL_CARDS[i].god !== opponentInfo.god.toLowerCase()) {
             continue
@@ -117,10 +118,11 @@ export async function getInitialDeck(opponentInfo) {
         }
         if (cardsCount >= 30) {
             console.log('Chegamos a count 30')
+            zaz = zaz +1
+            console.log(zaz)
             break
         }
     }
-    console.timeEnd('matchingcards')
     deck = deck.sort((a, b) => { return a.mana > b.mana ? 1 : -1 })
     return deck
 
@@ -135,6 +137,7 @@ export async function removeCardsPlayed(deck) {
     for await (const line of rl) {
 
         if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+            rl.close()
             return []
         }
 
@@ -161,6 +164,8 @@ export async function removeCardsPlayed(deck) {
         }
     }
 
+    console.log(linesAlreadyRemoved)
+    rl.close()
     return deck
 
 }
@@ -177,7 +182,7 @@ async function getFullListCards() {
     console.time('getFullCards')
     var cards = []
     const listProto = await axios.get('https://api.godsunchained.com/v0/proto?perPage=9999')
-    if(listProto && listProto.length < 1) {
+    if (listProto && listProto.length < 1) {
         console.log('Cant access Gods Unchained API')
         // FAZER MENSAGEM APARECER NO MAIN
     }
