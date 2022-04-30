@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('guApp', {
     removeCardsPlayed: async (deck) => ipcRenderer.invoke('removeCardsPlayed',deck),
     getOpponentInfo: async () => ipcRenderer.invoke('getOpponentInfo'),
     showCardListWindow: () => ipcRenderer.invoke('showCardListWindow'),
-    ping: () => ipcRenderer.invoke('ping')
+    ping: () => ipcRenderer.invoke('ping'),
+    ipcRendererOn: (fn) => ipcRenderer.on('message', (event, arg) => fn(arg))
 });

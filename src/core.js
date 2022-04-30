@@ -1,3 +1,5 @@
+import { ConstructionOutlined } from '@mui/icons-material'
+
 const fs = require('fs')
 const os = require('os')
 const readLine = require('readline')
@@ -18,9 +20,9 @@ const PATTERN_OPPONENT_CARD_PLAYED = 'CombatRecorder: {opponentName} -> Event: P
 let PATTERN_OPPONENT_CARD_PLAYED_CHANGED = ''
 const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
 var FULL_CARDS = []
-
 var linesAlreadyRemoved = []
 var fullyReaded = false
+
 
 const path = getLogPath() + PATH_MASTERLOG
 
@@ -34,11 +36,16 @@ function getLogPath() {
     }
 }
 
-export async function getOpponentInfo() {
+export async function getOpponentInfo(debug) {
+
+    if(!debug) {
+        debug = () => {}
+    }
+
     const lastLine = await readLastLines.read(path, 1)
 
     if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-        console.log('Game already over.')
+        debug('message', 'Game already over.')
         return { 'id': '0', 'god': '0' }
     }
 
@@ -52,6 +59,7 @@ export async function getOpponentInfo() {
         // getting id from local player
         if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
             localPlayerId = line.substring(line.indexOf(PATTERN_LOCAL_PLAYERID) + PATTERN_LOCAL_PLAYERID.length)
+            this.sender[this.senderMethod]('message', 'Local player id: '+localPlayerId)
         }
 
         if (line.indexOf(PATTERN_OPPONENT_NAME) >= 0) {

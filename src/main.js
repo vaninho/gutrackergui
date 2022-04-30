@@ -1,3 +1,4 @@
+const { CoPresent } = require('@mui/icons-material');
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const core = require('./core')
@@ -35,7 +36,8 @@ const createWindow = () => {
 
 
 async function verifyGameStart() {
-  const opponentInfo = await core.getOpponentInfo()
+  const opponentInfo = await core.getOpponentInfo(mainWindow.webContents.send.bind(mainWindow.webContents))
+  // const opponentInfo = await core.getOpponentInfo()
   if (opponentInfo.id !== '0' && !cardListWindow) {
     openCardListWindow()
   }
@@ -44,11 +46,12 @@ async function verifyGameStart() {
     cardListWindow = null
   }
   console.log('init verifyGameStart:' + cardListWindow)
+
+  // mainWindow.webContents.send('message', 'verifyGameStart')
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.on('ready', createWindow);
 
 // Quit when all windows are closed, except on macOS. There, it's common

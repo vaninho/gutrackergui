@@ -9,6 +9,16 @@ export default class MainWindow extends React.Component {
 
     constructor(props) {
         super(props)
+        this.state = { messages: 'Ola Voce' }
+    }
+
+    componentDidMount() {
+        window.guApp.ipcRendererOn((msg) => {
+            console.log('CHAMOU')
+            console.log(msg)
+            const messages = this.state.messages + '\n' + msg
+            this.setState({messages: messages})
+        })
     }
 
 
@@ -20,7 +30,7 @@ export default class MainWindow extends React.Component {
                 </DialogTitle>
 
                 <DialogContent className={'mainContent'}>
-                    <h1>Hello!</h1>
+                    <h1>{this.state.messages}</h1>
                 </DialogContent>
             </Dialog>
         )
