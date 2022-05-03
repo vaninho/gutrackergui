@@ -1,9 +1,9 @@
-const { CoPresent } = require('@mui/icons-material');
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const core = require('./core')
-
+const { windowStateKeeper }  = require('./windowStateKeeper')
 let mainWindow, cardListWindow
+process.env['NODE_' + 'ENV'] = 'production'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -13,31 +13,37 @@ if (require('electron-squirrel-startup')) {
 
 const createWindow = () => {
   // Create the browser window.
+
+  const mainWindowStateKeeper = windowStateKeeper('main')
+
   mainWindow = new BrowserWindow({
 
     frame: false,
     useContentSize: false,
-    width: 800,
-    height: 600,
+    x: mainWindowStateKeeper.x,
+    y: mainWindowStateKeeper.y,
+    width: mainWindowStateKeeper.width,
+    height: mainWindowStateKeeper.height,
 
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   });
+  mainWindowStateKeeper.track(mainWindow)
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
 
   setInterval(verifyGameStart, 5000)
 };
 
 
 async function verifyGameStart() {
-  const opponentInfo = await core.getOpponentInfo(mainWindow.webContents.send.bind(mainWindow.webContents))
-  // const opponentInfo = await core.getOpponentInfo()
+  // const opponentInfo = await core.getOpponentInfo(mainWindow.webContents.send.bind(mainWindow.webContents))
+
+  console.log('verifyGameStart')
+  const opponentInfo = await core.getOpponentInfo()
+  console.log(opponentInfo)
   if (opponentInfo.id !== '0' && !cardListWindow) {
     openCardListWindow()
   }
@@ -45,7 +51,6 @@ async function verifyGameStart() {
     cardListWindow.close()
     cardListWindow = null
   }
-  console.log('init verifyGameStart:' + cardListWindow)
 
   // mainWindow.webContents.send('message', 'verifyGameStart')
 }
@@ -98,33 +103,37 @@ ipcMain.handle('mainWindowMinimize', (event, args) => {
 })
 
 ipcMain.handle('openDonatePage', (event) => {
-  core.openDonatePage()
+  require('electron').shell.openExternal('https://www.paypal.com/donate/?hosted_button_id=KMYN4WU5L8FJ8')
 })
 
 function openCardListWindow() {
+
+  console.log('openCardList')
+
+  const cardListWindowStateKeeper = windowStateKeeper('cardList')
+  
   cardListWindow = new BrowserWindow({
     frame: false,
     useContentSize: false,
-    width: 800,
-    height: 600,
+    x: cardListWindowStateKeeper.x,
+    y: cardListWindowStateKeeper.y,
+    width: cardListWindowStateKeeper.width,
+    height: cardListWindowStateKeeper.height,
     transparent: true,
-    alwaysOnTop: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   })
   cardListWindow.loadURL(LIST_CARDS_WINDOW_WEBPACK_ENTRY)
-  cardListWindow.on('show', () => {
-    setTimeout(() => {
-      cardListWindow.focus();
-    }, 200);
-  });
+  cardListWindowStateKeeper.track(cardListWindow)
+
+  console.log(cardListWindow)
+  console.log(LIST_CARDS_WINDOW_WEBPACK_ENTRY)
 }
 
 ipcMain.handle('getDeck', async (event) => {
   const deck = await core.getDeck()
-  console.log(deck)
   if (deck.length === '0' && cardListWindow) {
     cardListWindow.close()
   }
@@ -139,6 +148,7 @@ ipcMain.handle('removeCardsPlayed', async (event, deck) => {
 })
 
 ipcMain.handle('showCardListWindow', () => {
+  cardListWindow.setAlwaysOnTop(true, 'pop-up-menu')
   cardListWindow.show()
 })
 

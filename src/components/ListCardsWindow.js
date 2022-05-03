@@ -43,7 +43,6 @@ export default class ListCardsApp extends React.Component {
                             })}
                         </ul>
                     </div>
-                    <h1 id='teste'></h1>
                 </div>
             </div>
         );
