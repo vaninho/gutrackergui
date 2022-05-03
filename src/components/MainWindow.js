@@ -2,25 +2,20 @@ import React from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import Button from '@mui/material/Button';
 import AppBar from './app-bar';
-import TextareaAutosize from '@mui/material/TextareaAutosize';
 
 export default class MainWindow extends React.Component {
 
     constructor(props) {
         super(props)
-        this.state = { messages: 'Ola Voce' }
+        this.handleButton = this.handleButton.bind(this)
     }
 
-    componentDidMount() {
-        window.guApp.ipcRendererOn((msg) => {
-            console.log('CHAMOU')
-            console.log(msg)
-            const messages = this.state.messages + '\n' + msg
-            this.setState({messages: messages})
-        })
+    handleButton(event) {
+        console.log('handleButton MAIN')
+        window.guApp.openDebugWindow()
     }
-
 
     render() {
         return (
@@ -30,7 +25,7 @@ export default class MainWindow extends React.Component {
                 </DialogTitle>
 
                 <DialogContent className={'mainContent'}>
-                    <h1>{this.state.messages}</h1>
+                    <Button size='big' onClick={this.handleButton}>Debug</Button>
                 </DialogContent>
             </Dialog>
         )

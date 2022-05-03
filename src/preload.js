@@ -9,5 +9,7 @@ contextBridge.exposeInMainWorld('guApp', {
     getOpponentInfo: async () => ipcRenderer.invoke('getOpponentInfo'),
     showCardListWindow: () => ipcRenderer.invoke('showCardListWindow'),
     ping: () => ipcRenderer.invoke('ping'),
-    ipcRendererOn: (fn) => ipcRenderer.on('message', (event, arg) => fn(arg))
+    ipcRendererOn: (fn) => ipcRenderer.on('message', (event, arg) => fn(arg)),
+    copyToClipBoard: (args) => ipcRenderer.invoke('copyToClipBoard', args),
+    openDebugWindow: () => ipcRenderer.invoke('openDebugWindow')
 });

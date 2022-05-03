@@ -23,10 +23,6 @@ var fullyReaded = false
 
 const path = getLogPath() + PATH_MASTERLOG
 
-if (!fs.existsSync(path)) {
-    console.log('Cant find the log in path log: ' + path)
-}
-
 function getLogPath() {
     if (os.platform() === 'win32') {
         return os.homedir()
@@ -36,13 +32,21 @@ function getLogPath() {
 export async function getOpponentInfo(debug) {
 
     if (!debug) {
-        debug = () => { }
+        debug = () => {}
+    }
+
+
+    if (!fs.existsSync(path)) {
+        console.log('Cant find the log in path log: ' + path)
+        debug('message', `Can't find the master log on ${path}.`)
+        return { 'id': '0', 'god': '0' }
     }
 
     const lastLine = await readLastLines.read(path, 1)
 
     if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
         debug('message', 'Game already over.')
+        debug('message', 'Waiting for game start...')
         return { 'id': '0', 'god': '0' }
     }
 
@@ -56,12 +60,14 @@ export async function getOpponentInfo(debug) {
         // getting id from local player
         if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
             localPlayerId = line.substring(line.indexOf(PATTERN_LOCAL_PLAYERID) + PATTERN_LOCAL_PLAYERID.length)
+            debug('message', 'Your player ID: '+localPlayerId)
         }
 
         if (line.indexOf(PATTERN_OPPONENT_NAME) >= 0) {
             const opponentNameIndex = line.indexOf(PATTERN_OPPONENT_NAME) + PATTERN_OPPONENT_NAME.length
             const opponentNickname = line.substring(opponentNameIndex, line.indexOf("'", opponentNameIndex))
             PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentName}', opponentNickname) // Replacing the enemyName in our pattern
+            debug('message', 'Opponent nickname: '+opponentNickname)
         }
 
         // getting enemy info
@@ -71,6 +77,8 @@ export async function getOpponentInfo(debug) {
             if (opponentId !== localPlayerId) {
                 const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
                 const opponentGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
+                debug('message', 'Opponent ID: '+opponentId)
+                debug('message', 'Opponent God: '+opponentGod)
                 rl.close()
                 return { 'id': opponentId, 'god': opponentGod.toLowerCase() }
             }
@@ -82,7 +90,12 @@ export async function getOpponentInfo(debug) {
 }
 
 var zaz = 0
-export async function getInitialDeck(opponentInfo) {
+export async function getInitialDeck(opponentInfo, debug) {
+
+    if (!debug) {
+        debug = () => { }
+    }
+
     if (FULL_CARDS.length === 0) {
         FULL_CARDS = await getFullListCards()
     }

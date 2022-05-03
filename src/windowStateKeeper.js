@@ -8,11 +8,22 @@ function windowStateKeeper(windowName) {
             windowState = appConfig.getSync(`windowState.${windowName}`);
             return;
         }
+
+        // Default cardList
+        if (windowName === 'cardList') {
+            windowState = {
+                x: 0,
+                y: 100,
+                width: 250,
+                height: 750,
+            };
+            return;
+        }
         // Default
         windowState = {
             x: 0,
-            y: 100,
-            width: 250,
+            y: 0,
+            width: 500,
             height: 750,
         };
     }
@@ -40,4 +51,4 @@ function windowStateKeeper(windowName) {
     });
 }
 
-module.exports = {windowStateKeeper}
+module.exports = { windowStateKeeper }
