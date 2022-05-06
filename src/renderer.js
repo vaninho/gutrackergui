@@ -6,10 +6,13 @@ import MainWindow from './components/MainWindow';
 import './index.css'
 
 let url = window.location.href
+console.log(url)
 url = url.replace('\\', '/')
 url = url.replace('/index.html', '')
 url = url.substring(url.lastIndexOf('/'))
 const rootElement = document.getElementById('root')
+
+console.log(url)
 ReactDOM.render(
-    url == '/main_window' ? <MainWindow /> : (url == 'list_cards_window' ? <ListCardsWindow /> : <DebugWindow />)
+    url == '/main_window' ? <MainWindow /> : (url == '/list_cards_window' ? <ListCardsWindow /> : <DebugWindow />)
     , rootElement);

@@ -40,9 +40,10 @@ const createWindow = () => {
 
 
 async function verifyGameStart() {
-  const opponentInfo = await core.getOpponentInfo(mainWindow.webContents.send.bind(mainWindow.webContents))
+  // const opponentInfo = await core.getOpponentInfo(mainWindow.webContents.send.bind(mainWindow.webContents))
 
-  // const opponentInfo = await core.getOpponentInfo()
+  const opponentInfo = await core.getOpponentInfo()
+  console.log(opponentInfo)
 
   if (opponentInfo.id !== '0' && !cardListWindow) {
     openCardListWindow()
@@ -143,6 +144,7 @@ ipcMain.handle('removeCardsPlayed', async (event, deck) => {
 })
 
 ipcMain.handle('showCardListWindow', () => {
+  console.log('showList')
   cardListWindow.setAlwaysOnTop(true, 'pop-up-menu')
   cardListWindow.show()
 })

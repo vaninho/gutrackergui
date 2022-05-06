@@ -5,7 +5,8 @@ const readLastLines = require('read-last-lines')
 const fsR = require('fs-reverse')
 const { getFullListCards, getLastsMatchs } = require('./gods-unchained-api')
 
-const PATH_MASTERLOG = '/AppData/LocalLow/FuelGames/gods/logs/latest/master.txt'
+const PATH_LOGS = '/AppData/LocalLow/FuelGames/gods/logs/latest/'
+const PATH_MASTERLOG = 'master.txt'
 const PATTERN_OPPONENT_NAME = "player 1 name: '"
 const PATTERN_TARGETDATA = 'TargetData:'
 const PATTERN_OPPONENT_PLAYERID = "playerID:'" // dont forget the ', since its important to index
@@ -15,13 +16,14 @@ const PATTERN_FIRST_LINE = 'GameConfiguration.LoadGameConfigurationAtRuntime'
 const PATTERN_LAST_LINES = ['Client handlers deregistered', 'Settings.ini successfully saved']
 const PATTERN_OPPONENT_CARD_PLAYED = 'CombatRecorder: {opponentName} -> Event: Played | Card: ' // need to replace the enemyName in execution
 let PATTERN_OPPONENT_CARD_PLAYED_CHANGED = ''
-const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
+const END_GAME_PATTERN = { file: 'player/player_info.txt', line: 'OnEndGame()' }
 var FULL_CARDS = []
 var linesAlreadyRemoved = []
 var fullyReaded = false
 
 
-const path = getLogPath() + PATH_MASTERLOG
+const masterLogPath = getLogPath() + PATH_LOGS + PATH_MASTERLOG
+const playerInfoLogPath = getLogPath() + PATH_LOGS + END_GAME_PATTERN.file
 
 function getLogPath() {
     if (os.platform() === 'win32') {
@@ -29,29 +31,45 @@ function getLogPath() {
     }
 }
 
+function verifyPathLogs(debug) {
+    if (!fs.existsSync(masterLogPath)) {
+        console.log('Cant find the log in path log: ' + masterLogPath)
+        debug('message', `Can't find the master log on ${masterLogPath}.`)
+        return false
+    }
+
+    if (!fs.existsSync(playerInfoLogPath)) {
+        console.log('Cant find the log in path log: ' + playerInfoLogPath)
+        debug('message', `Can't find the master log on ${playerInfoLogPath}.`)
+        return false
+    }
+
+    return true
+}
+
+async function verifyGameOver() {
+    const lastLine = await readLastLines.read(playerInfoLogPath, 1)
+    return lastLine.indexOf(END_GAME_PATTERN.line) >= 0
+}
+
 export async function getOpponentInfo(debug) {
 
     if (!debug) {
-        debug = () => {}
+        debug = () => { }
     }
 
 
-    if (!fs.existsSync(path)) {
-        console.log('Cant find the log in path log: ' + path)
-        debug('message', `Can't find the master log on ${path}.`)
+    if (!verifyPathLogs(debug)) {
         return { 'id': '0', 'god': '0' }
     }
 
-    const lastLine = await readLastLines.read(path, 1)
-
-    if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-        debug('message', 'Game already over.')
-        debug('message', 'Waiting for game start...')
+    if(await verifyGameOver()) {
+        debug('message', 'Waiting game start...')
         return { 'id': '0', 'god': '0' }
     }
 
     const rl = readLine.createInterface({
-        input: fs.createReadStream(path),
+        input: fs.createReadStream(masterLogPath),
         crlfDelay: Infinity
     })
     let localPlayerId = null
@@ -60,14 +78,14 @@ export async function getOpponentInfo(debug) {
         // getting id from local player
         if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
             localPlayerId = line.substring(line.indexOf(PATTERN_LOCAL_PLAYERID) + PATTERN_LOCAL_PLAYERID.length)
-            debug('message', 'Your player ID: '+localPlayerId)
+            debug('message', 'Your player ID: ' + localPlayerId)
         }
 
         if (line.indexOf(PATTERN_OPPONENT_NAME) >= 0) {
             const opponentNameIndex = line.indexOf(PATTERN_OPPONENT_NAME) + PATTERN_OPPONENT_NAME.length
             const opponentNickname = line.substring(opponentNameIndex, line.indexOf("'", opponentNameIndex))
             PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentName}', opponentNickname) // Replacing the enemyName in our pattern
-            debug('message', 'Opponent nickname: '+opponentNickname)
+            debug('message', 'Opponent nickname: ' + opponentNickname)
         }
 
         // getting enemy info
@@ -77,8 +95,8 @@ export async function getOpponentInfo(debug) {
             if (opponentId !== localPlayerId) {
                 const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
                 const opponentGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
-                debug('message', 'Opponent ID: '+opponentId)
-                debug('message', 'Opponent God: '+opponentGod)
+                debug('message', 'Opponent ID: ' + opponentId)
+                debug('message', 'Opponent God: ' + opponentGod)
                 rl.close()
                 return { 'id': opponentId, 'god': opponentGod.toLowerCase() }
             }
@@ -99,8 +117,6 @@ export async function getInitialDeck(opponentInfo, debug) {
     if (FULL_CARDS.length === 0) {
         FULL_CARDS = await getFullListCards()
     }
-    console.log('getInitialDeck opponentInfo ' + opponentInfo.id)
-    console.log('getInitialDeck opponentInfo ' + opponentInfo.god)
     const matchs = await getLastsMatchs(opponentInfo.id, opponentInfo.god)
     if (matchs.length == 0) {
         console.log('Cant get lasts matchs from this opponent')
@@ -144,20 +160,30 @@ export async function getInitialDeck(opponentInfo, debug) {
 
 }
 
-export async function removeCardsPlayed(deck) {
+export async function removeCardsPlayed(deck, debug) {
+
+    if (!debug) {
+        debug = () => { }
+    }
+
+    if(await verifyGameOver()) {
+        debug('message', 'Game over.')
+        return []
+    }
+
     const rl = readLine.createInterface({
-        input: fsR(path),
+        input: fsR(masterLogPath),
         crlfDelay: Infinity
     })
     for await (const line of rl) {
 
+        // Old version used this patter, I gonna keep it if they back into it.
         if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
             rl.close()
             return []
         }
 
         if (linesAlreadyRemoved.includes(line) && fullyReaded) {
-            console.log('leu tudo, retorna o deck como esta')
             rl.close()
             return deck
         }
@@ -179,7 +205,6 @@ export async function removeCardsPlayed(deck) {
         }
     }
 
-    console.log(linesAlreadyRemoved)
     rl.close()
     return deck
 
