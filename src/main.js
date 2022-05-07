@@ -4,7 +4,6 @@ const core = require('./core')
 const { windowStateKeeper } = require('./windowStateKeeper')
 const appConfig = require('electron-settings')
 let mainWindow, cardListWindow, debugWindow
-// process.env['NODE_' + 'ENV'] = 'production'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -25,11 +24,13 @@ const createWindow = () => {
     y: mainWindowStateKeeper.y,
     width: mainWindowStateKeeper.width,
     height: mainWindowStateKeeper.height,
+    show: false,
 
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   });
+  mainWindow.once('ready-to-show', () => mainWindow.show())
   mainWindowStateKeeper.track(mainWindow)
 
   // and load the index.html of the app.
@@ -40,9 +41,8 @@ const createWindow = () => {
 
 
 async function verifyGameStart() {
-  // const opponentInfo = await core.getOpponentInfo(mainWindow.webContents.send.bind(mainWindow.webContents))
 
-  const opponentInfo = await core.getOpponentInfo()
+  const opponentInfo = await core.getOpponentInfo(debugWindow ? debugWindow.webContents.send.bind(debugWindow.webContents) : null)
   console.log(opponentInfo)
 
   if (opponentInfo.id !== '0' && !cardListWindow) {
@@ -78,19 +78,25 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-ipcMain.handle('mainWindowClose', (event, args) => {
+ipcMain.handle('windowClose', (event, args) => {
   switch (args) {
     case 'main': {
       app.quit()
       return
     }
-    case 'listCard':
+    case 'listCard': {
       cardListWindow.close()
       cardListWindow = null
+      return
+    }
+    case 'debug': {
+      debugWindow.close()
+      debugWindow = null
+    }
   }
 })
 
-ipcMain.handle('mainWindowMinimize', (event, args) => {
+ipcMain.handle('windowMinimize', (event, args) => {
   switch (args) {
     case 'main': {
       mainWindow.minimize()
@@ -98,6 +104,11 @@ ipcMain.handle('mainWindowMinimize', (event, args) => {
     }
     case 'listCard': {
       cardListWindow.minimize()
+      return
+    }
+    case 'debug': {
+      debugWindow.minimize()
+      return
     }
   }
 })
@@ -128,8 +139,8 @@ function openCardListWindow() {
 
 }
 
-ipcMain.handle('getDeck', async (event) => {
-  const deck = await core.getDeck()
+ipcMain.handle('getDeck', async () => {
+  const deck = await core.getDeck(debugWindow ? debugWindow.webContents.send.bind(debugWindow.webContents) : null)
   if (deck.length === '0' && cardListWindow) {
     cardListWindow.close()
   }
@@ -140,7 +151,7 @@ ipcMain.handle('getDeck', async (event) => {
 })
 
 ipcMain.handle('removeCardsPlayed', async (event, deck) => {
-  return await core.removeCardsPlayed(deck)
+  return await core.removeCardsPlayed(deck, debugWindow ? debugWindow.webContents.send.bind(debugWindow.webContents) : null)
 })
 
 ipcMain.handle('showCardListWindow', () => {
@@ -154,7 +165,8 @@ ipcMain.handle('ping', () => {
   return 'pong'
 })
 
-ipcMain.handle('copyToClipBoard', (text) => {
+ipcMain.handle('copyToClipBoard', (event, text) => {
+  console.log(text)
   clipboard.writeText(text)
 })
 

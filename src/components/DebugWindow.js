@@ -19,9 +19,9 @@ export default class DebugWindow extends React.Component {
 
     componentDidMount() {
         window.guApp.ipcRendererOn((msg) => {
-            console.log('CHAMOU')
             console.log(msg)
-            const messages = this.state.messages + '\n' + msg
+            let messages = this.state.messages
+            messages = messages + msg + '\n'
             this.setState({ messages: messages })
         })
     }
@@ -35,7 +35,7 @@ export default class DebugWindow extends React.Component {
                 </DialogTitle>
 
                 <DialogContent className={'mainContent'}>
-                    <Button size='big' onClick={this.handleButton}>Copy to clipboard</Button>
+                    <Button size='big' variant='contained' onClick={this.handleButton}>Copy to clipboard</Button>
                     <div className='scroll'>
                         {this.state.messages}
                     </div>

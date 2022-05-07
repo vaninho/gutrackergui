@@ -4,6 +4,7 @@ const readLine = require('readline')
 const readLastLines = require('read-last-lines')
 const fsR = require('fs-reverse')
 const { getFullListCards, getLastsMatchs } = require('./gods-unchained-api')
+const { dialog } = require('electron')
 
 const PATH_LOGS = '/AppData/LocalLow/FuelGames/gods/logs/latest/'
 const PATH_MASTERLOG = 'master.txt'
@@ -20,6 +21,7 @@ const END_GAME_PATTERN = { file: 'player/player_info.txt', line: 'OnEndGame()' }
 var FULL_CARDS = []
 var linesAlreadyRemoved = []
 var fullyReaded = false
+var dialogs = []
 
 
 const masterLogPath = getLogPath() + PATH_LOGS + PATH_MASTERLOG
@@ -32,6 +34,7 @@ function getLogPath() {
 }
 
 function verifyPathLogs(debug) {
+    debug('message', 'verifyPathLogs')
     if (!fs.existsSync(masterLogPath)) {
         console.log('Cant find the log in path log: ' + masterLogPath)
         debug('message', `Can't find the master log on ${masterLogPath}.`)
@@ -47,8 +50,18 @@ function verifyPathLogs(debug) {
     return true
 }
 
-async function verifyGameOver() {
-    const lastLine = await readLastLines.read(playerInfoLogPath, 1)
+// Verify with two methods if the game is over, since the logs sometimes changes, needs to keep this two ways.
+async function verifyGameOver(debug) {
+    debug('message', 'verifyGameOver')
+
+    let lastLine = await readLastLines.read(masterLogPath, 1)
+    debug('message', `lastLine: ${lastLine} from ${masterLogPath}`)
+    if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+        return true
+    }
+
+    lastLine = await readLastLines.read(playerInfoLogPath, 1)
+    debug('message', `lastLine: ${lastLine} from ${playerInfoLogPath}`)
     return lastLine.indexOf(END_GAME_PATTERN.line) >= 0
 }
 
@@ -58,15 +71,16 @@ export async function getOpponentInfo(debug) {
         debug = () => { }
     }
 
+    debug('message', 'getOpponentInfo')
 
     if (!verifyPathLogs(debug)) {
         return { 'id': '0', 'god': '0' }
     }
 
-    if(await verifyGameOver()) {
-        debug('message', 'Waiting game start...')
-        return { 'id': '0', 'god': '0' }
-    }
+    // if (await verifyGameOver(debug)) {
+    //     debug('message', 'Waiting game start...')
+    //     return { 'id': '0', 'god': '0' }
+    // }
 
     const rl = readLine.createInterface({
         input: fs.createReadStream(masterLogPath),
@@ -84,7 +98,7 @@ export async function getOpponentInfo(debug) {
         if (line.indexOf(PATTERN_OPPONENT_NAME) >= 0) {
             const opponentNameIndex = line.indexOf(PATTERN_OPPONENT_NAME) + PATTERN_OPPONENT_NAME.length
             const opponentNickname = line.substring(opponentNameIndex, line.indexOf("'", opponentNameIndex))
-            PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentName}', opponentNickname) // Replacing the enemyName in our pattern
+            PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentName}', opponentNickname) // Replacing the opponentName in our pattern
             debug('message', 'Opponent nickname: ' + opponentNickname)
         }
 
@@ -115,14 +129,19 @@ export async function getInitialDeck(opponentInfo, debug) {
     }
 
     if (FULL_CARDS.length === 0) {
+        debug('mensagem', 'Getting card list from API.')
         FULL_CARDS = await getFullListCards()
     }
     const matchs = await getLastsMatchs(opponentInfo.id, opponentInfo.god)
     if (matchs.length == 0) {
+        debug('mensagem', 'Cant get lasts matchs from this opponent')
         console.log('Cant get lasts matchs from this opponent')
+        if (!dialogs[opponentInfo.id]) {
+            dialog.showMessageBox(null, {title: 'GU Tracker' ,message: `There aren't any games from this player ${opponentInfo.id} with god ${opponentInfo.god} in lasts 10 days.`})
+            dialogs[opponentInfo.id] = true
+        }
         return []
     }
-    console.log(matchs[0])
     const cards = matchs[0].cards
 
     var deck = []
@@ -149,9 +168,6 @@ export async function getInitialDeck(opponentInfo, debug) {
             }
         }
         if (cardsCount >= 30) {
-            console.log('Chegamos a count 30')
-            zaz = zaz + 1
-            console.log(zaz)
             break
         }
     }
@@ -166,7 +182,7 @@ export async function removeCardsPlayed(deck, debug) {
         debug = () => { }
     }
 
-    if(await verifyGameOver()) {
+    if (await verifyGameOver(debug)) {
         debug('message', 'Game over.')
         return []
     }
@@ -179,12 +195,14 @@ export async function removeCardsPlayed(deck, debug) {
 
         // Old version used this patter, I gonna keep it if they back into it.
         if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+            debug('message', 'Game Over - Old version.')
             rl.close()
             return []
         }
 
         if (linesAlreadyRemoved.includes(line) && fullyReaded) {
             rl.close()
+            debug('mensagem', 'Already read the entire log.')
             return deck
         }
 
@@ -194,6 +212,7 @@ export async function removeCardsPlayed(deck, debug) {
                 if (deck[i].name === line.substring(line.indexOf(PATTERN_OPPONENT_CARD_PLAYED_CHANGED) + PATTERN_OPPONENT_CARD_PLAYED_CHANGED.length) && !linesAlreadyRemoved.includes(line)) {
                     linesAlreadyRemoved = linesAlreadyRemoved.concat(line)
                     deck[i].count = deck[i].count - 1
+                    debug('mensagem', `Card played: ${deck[i].name}. New count left: ${deck[i].count}`)
                     if (deck[i].count === 0) {
                         deck.splice(i, 1)
                     }
@@ -210,9 +229,13 @@ export async function removeCardsPlayed(deck, debug) {
 
 }
 
-export async function getDeck() {
+export async function getDeck(debug) {
+    if (!debug) {
+        debug = () => { }
+    }
     const opponentInfo = await getOpponentInfo()
     if (opponentInfo === null || opponentInfo.id === '0') {
+        debug('mensagem', `getDeck - No opponentInfo found. opponentInfo: ${opponentInfo}`)
         return []
     }
     return await getInitialDeck(opponentInfo)

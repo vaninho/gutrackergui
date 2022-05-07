@@ -5,20 +5,9 @@ import DialogContent from '@mui/material/DialogContent';
 import Button from '@mui/material/Button';
 import AppBar from './app-bar';
 import HelpOutline from '@mui/icons-material/HelpOutline';
-import { Divider, Tooltip } from '@mui/material';
-import { ResetTv } from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
+import { Tooltip } from '@mui/material';
 
 export default class MainWindow extends React.Component {
-
-
-    Root = styled('div')(({ theme }) => ({
-        width: '100%',
-        ...theme.typography.body2,
-        '& > :not(style) + :not(style)': {
-            marginTop: theme.spacing(2),
-        },
-    }));
 
     constructor(props) {
         super(props)
@@ -39,28 +28,18 @@ export default class MainWindow extends React.Component {
 
                 <DialogContent className={'mainContent'}>
                     <div>
-                        <this.Root>
-                            <Divider>
-                                Cards List Window
-                            </Divider>
-                            <Button variant='contained' startIcon={<ResetTv />}>Reset</Button>
-                            <Tooltip title='Reset the location of Cards List Window to default.'>
-                                <HelpOutline fontSize='small' />
-                            </Tooltip>
-                            <Button variant='contained' startIcon={<ResetTv />}>Set</Button>
-                            <Tooltip title='Open the Card List Window, then you can drag the window to location you prefer, after that you can close the window to save.'>
-                                <HelpOutline fontSize='small' />
-                            </Tooltip>
-                        </this.Root>
-                    </div>
-                    <div>
                         <Button variant='contained' onClick={this.handleDebugButton}>Open Debug</Button>
                         <Tooltip title='Use this button if your tracker is not working, it will open a new Window debugging the tracker.'>
                             <HelpOutline fontSize='small' />
                         </Tooltip>
                     </div>
+                    <p>Hello everyone, welcome to GU Tracker v2.</p>
+                    <p>In this version the tracker window will be openning when the match starts, he will appears a few secounds after both player choose the god power. This window here is the main window, keep it opened (can be minimized) to stay tracking, close if want to close this software.</p>
+                    <p>In case your tracker isnt working, like not openning the new window, please click on Open Debug button and wait a little bit, then you can click on Button 'Copy to clipboard' and paste the text on websites like https://pastebin.com, and send the link to my email. vaninho@gmail.com.</p>
+                    <p>That's it, I hope you enjoy the tracker.</p>
+                    <p>created by Vanio Meurer (vaninho) - 2022</p>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
         )
     }
 }

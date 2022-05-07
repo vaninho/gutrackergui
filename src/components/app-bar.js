@@ -43,11 +43,11 @@ export default class AppBar extends React.Component {
                 <Button variant='contained' size='small' style={appButton} onClick={() => { window.guApp.openDonatePage() }}>Donate</Button>
 
                 <IconButton color="inherit" size="small" style={appButton}
-                    onClick={() => window.guApp.mainWindowMinimize(this.props.window)}>
+                    onClick={() => window.guApp.windowMinimize(this.props.window)}>
                     <Minimize />
                 </IconButton>
                 <IconButton color="inherit" size="small" style={appButton}
-                    onClick={() => window.guApp.mainWindowClose(this.props.window)}>
+                    onClick={() => window.guApp.windowClose(this.props.window)}>
                     <Close />
                 </IconButton>
             </div>

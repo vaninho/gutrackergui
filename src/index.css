@@ -149,4 +149,5 @@ ul {
 }
 .scroll {
 	overflow: auto;
+	white-space: pre-line;
 }

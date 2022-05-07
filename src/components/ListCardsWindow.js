@@ -38,8 +38,8 @@ export default class ListCardsApp extends React.Component {
                 <div>
                     <div className='card-list'>
                         <ul className='deck-class'>
-                            {this.state.deck != 0 && this.state.deck.map((i) => {
-                                return <Card card={i} key={(i.name + '' + i.count)} />
+                            {this.state.deck != 0 && this.state.deck.map((card) => {
+                                return <Card card={card} key={(card.name + '' + card.count)} />
                             })}
                         </ul>
                     </div>

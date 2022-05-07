@@ -23,10 +23,8 @@ async function getLastsMatchs(playerId, god) {
     date10DaysAgo.setHours(0, 0, 0, 0)
     date10DaysAgo.setDate(date10DaysAgo.getDate() - 10)
 
-
     await getMatches('lost')
     await getMatches('won')
-
 
     matchs = matchs.sort(sort)
 
