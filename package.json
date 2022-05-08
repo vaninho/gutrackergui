@@ -1,6 +1,6 @@
 {
   "name": "gutracker",
-  "productName": "gutracker",
+  "productName": "GU Tracker",
   "version": "2.0.0",
   "description": "Gods Unchained Tracker, track the deck your opponent should be using.",
   "main": ".webpack/main",
@@ -19,12 +19,15 @@
   "license": "MIT",
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "icon": "icon.ico"
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "gutracker"
+            "name": "gutracker",
+            "setupIcon": "icon.ico"
           }
         },
         {

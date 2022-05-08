@@ -77,10 +77,10 @@ export async function getOpponentInfo(debug) {
         return { 'id': '0', 'god': '0' }
     }
 
-    // if (await verifyGameOver(debug)) {
-    //     debug('message', 'Waiting game start...')
-    //     return { 'id': '0', 'god': '0' }
-    // }
+    if (await verifyGameOver(debug)) {
+        debug('message', 'Waiting game start...')
+        return { 'id': '0', 'god': '0' }
+    }
 
     const rl = readLine.createInterface({
         input: fs.createReadStream(masterLogPath),
