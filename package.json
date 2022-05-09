@@ -98,7 +98,7 @@
     "@emotion/styled": "^11.8.1",
     "@mui/icons-material": "^5.6.2",
     "@mui/material": "^5.6.2",
-    "axios": "^0.27.0",
+    "axios": "^0.27.2",
     "electron-settings": "^4.0.2",
     "electron-squirrel-startup": "^1.0.0",
     "fs-reverse": "0.0.3",
