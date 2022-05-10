@@ -1,15 +1,15 @@
-import IconButton from '@material-ui/core/IconButton';
-import Close from '@material-ui/icons/Close';
-import Minimize from '@material-ui/icons/Minimize';
-import Button from '@material-ui/core/Button';
+import IconButton from '@mui/material/IconButton';
+import Close from '@mui/icons-material/Close';
+import Minimize from '@mui/icons-material/Minimize';
+import Button from '@mui/material/Button';
 import React from 'react';
 
-
-// Capture Electron Main Window 
-const { remote } = require('electron')
-var window = remote.getCurrentWindow()
-
 export default class AppBar extends React.Component {
+
+    constructor(props) {
+        super(props)
+        this.props = props
+    }
 
     render() {
         // Styles
@@ -40,14 +40,14 @@ export default class AppBar extends React.Component {
         return (
             <div style={appBarStyle}>
                 <h1 style={appH1}>GU Tracker</h1>
-                <Button variant='contained' size='small' style={appButton} onClick={()=>{require('electron').shell.openExternal('https://www.paypal.com/donate/?hosted_button_id=KMYN4WU5L8FJ8')}}>Donate</Button>
+                <Button variant='contained' size='small' style={appButton} onClick={() => { window.guApp.openDonatePage() }}>Donate</Button>
 
                 <IconButton color="inherit" size="small" style={appButton}
-                    onClick={() => { window.minimize() }}>
+                    onClick={() => window.guApp.windowMinimize(this.props.window)}>
                     <Minimize />
                 </IconButton>
                 <IconButton color="inherit" size="small" style={appButton}
-                    onClick={() => { window.close() }}>
+                    onClick={() => window.guApp.windowClose(this.props.window)}>
                     <Close />
                 </IconButton>
             </div>

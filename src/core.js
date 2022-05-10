@@ -1,235 +1,290 @@
 const fs = require('fs')
 const os = require('os')
 const readLine = require('readline')
-const puppeteer = require('puppeteer')
+const readLastLines = require('read-last-lines')
 const fsR = require('fs-reverse')
-const readLastLines = require('read-last-lines');
-const axios = require('axios')
+const { getFullListCards, getLastsMatchs } = require('./gods-unchained-api')
+const { dialog } = require('electron')
 
-const PATH_MASTERLOG = '/AppData/LocalLow/FuelGames/gods/logs/latest/master.txt'
-const PATTERN_ENEMY_PLAYER_NAME = "player 1 name: '"
+const PATH_LOGS = '/AppData/LocalLow/FuelGames/gods/logs/latest/'
+const PATH_MASTERLOG = 'master.txt'
+const PATTERN_OPPONENT_NAME = "player 1 name: '"
 const PATTERN_TARGETDATA = 'TargetData:'
-const PATTERN_ENEMY_PLAYERID = "playerID:'" // dont forget the ', since its important to index
+const PATTERN_OPPONENT_PLAYERID = "playerID:'" // dont forget the ', since its important to index
 const PATTERN_TARGETGOD = "targetGod:'" // dont forget the ', since its important to index
 const PATTERN_LOCAL_PLAYERID = 'Sending RegisterPlayer msg... apolloID: '
 const PATTERN_FIRST_LINE = 'GameConfiguration.LoadGameConfigurationAtRuntime'
 const PATTERN_LAST_LINES = ['Client handlers deregistered', 'Settings.ini successfully saved']
-const PATTERN_ENEMY_CARD_PLAYED = 'CombatRecorder: {enemyName} -> Event: Played | Card: ' // need to replace the enemyName in execution
-let PATTERN_ENEMY_CARD_PLAYED_CHANGED = ''
-const URL_GUDECKS_PLAYERSTATS = 'https://gudecks.com/meta/player-stats?userId='
+const PATTERN_OPPONENT_CARD_PLAYED = 'CombatRecorder: {opponentName} -> Event: Played | Card: ' // need to replace the enemyName in execution
+let PATTERN_OPPONENT_CARD_PLAYED_CHANGED = ''
+const END_GAME_PATTERN = { file: 'player/player_info.txt', line: 'OnEndGame()' }
 var FULL_CARDS = []
-
 var linesAlreadyRemoved = []
 var fullyReaded = false
+var dialogs = []
 
-const path = os.homedir() + PATH_MASTERLOG
 
-async function getEnemyInfo() {
+const masterLogPath = getLogPath() + PATH_LOGS + PATH_MASTERLOG
+const playerInfoLogPath = getLogPath() + PATH_LOGS + END_GAME_PATTERN.file
 
-  const lastLine = await readLastLines.read(path, 1)
-
-  if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-    return { 'playerID': '0', 'targetGod': '0' }
-  }
-
-  const rl = readLine.createInterface({
-    input: fs.createReadStream(path),
-    crlfDelay: Infinity
-  })
-  let localPlayerId = null
-  for await (const line of rl) {
-
-    // getting id from local player
-    if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
-      localPlayerId = line.substring(line.indexOf(PATTERN_LOCAL_PLAYERID) + PATTERN_LOCAL_PLAYERID.length)
+function getLogPath() {
+    if (os.platform() === 'win32') {
+        return os.homedir()
     }
-
-    if (line.indexOf(PATTERN_ENEMY_PLAYER_NAME) >= 0) {
-      const enemyPlayerNameIndex = line.indexOf(PATTERN_ENEMY_PLAYER_NAME) + PATTERN_ENEMY_PLAYER_NAME.length
-      const enemyName = line.substring(enemyPlayerNameIndex, line.indexOf("'", enemyPlayerNameIndex))
-      PATTERN_ENEMY_CARD_PLAYED_CHANGED = PATTERN_ENEMY_CARD_PLAYED.replace('{enemyName}', enemyName) // Replacing the enemyName in our pattern
-    }
-
-    // getting enemy info
-    if (line.indexOf(PATTERN_TARGETDATA) >= 0) {
-      const index = line.indexOf(PATTERN_ENEMY_PLAYERID) + PATTERN_ENEMY_PLAYERID.length
-      const playerID = line.substring(index, line.indexOf("'", index))
-      if (playerID !== localPlayerId) {
-        const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
-        const targetGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
-        rl.close()
-        return { playerID, targetGod }
-      }
-    }
-  }
-  // Game didnt start yet, cant find infos.
-  return { 'playerID': '0', 'targetGod': '0' }
 }
 
-async function getInitialDeck(enemyInfo) {
-  if(FULL_CARDS.length === 0) {
-    FULL_CARDS = await getFullListCards()
-  }
-  console.time('puppeter')
-  const getChromiumExecPath = () => {
-    return puppeteer.executablePath().replace('app.asar', 'app.asar.unpacked');
-  }
-  const browser = await puppeteer.launch({ executablePath: getChromiumExecPath() })
-  const page = await browser.newPage()
-  await page.goto(URL_GUDECKS_PLAYERSTATS + enemyInfo.playerID, { waitUntil: 'networkidle0' })
-  let link = await page.evaluate(a => a.getAttribute('href'), await page.$('.deck-results-square-shadow-' + enemyInfo.targetGod.toLowerCase() + ' a'))
-  console.log(link)
-  browser.close()
-  console.timeEnd('puppeter')
-  link = link.replace('/decks/', '')
-  const deckCode = link.substring(0, link.indexOf('?'))
-  console.time('decodeDeck')
-  const decodedDeck = decodeDeck(deckCode)
-  console.timeEnd('decodeDeck')
-  var deck = []
-  let cardsCount = 0
-  console.time('matchingcards')
-  for (var i = 0; i < FULL_CARDS.length; i++) {
-    if (FULL_CARDS[i].god !== 'neutral' && FULL_CARDS[i].god !== enemyInfo.targetGod.toLowerCase()) {
-      continue
+function verifyPathLogs(debug) {
+    debug('message', 'verifyPathLogs')
+    if (!fs.existsSync(masterLogPath)) {
+        console.log('Cant find the log in path log: ' + masterLogPath)
+        debug('message', `Can't find the master log on ${masterLogPath}.`)
+        return false
     }
-    decodedDeckLabel: for (var z = 0; z < decodedDeck.length; z++) {
-      if (FULL_CARDS[i].lib_id === decodedDeck[z]) {
-        console.log('INDEX: ' + i + ' - id: ' + FULL_CARDS[i].id + ' - ' + FULL_CARDS[i].name + ' -lib_id ' + FULL_CARDS[i].lib_id)
-        for (var j = 0; j < deck.length; j++) {
-          if (deck[j].prot === FULL_CARDS[i].id) {
-            deck[j].count = deck[j].count + 1
-            cardsCount++
-            continue decodedDeckLabel
-          }
-        }
-        deck = deck.concat({
-          'prot': FULL_CARDS[i].id, 'god': FULL_CARDS[i].god, 'rarity': FULL_CARDS[i].rarity,
-          'mana': FULL_CARDS[i].mana, 'name': FULL_CARDS[i].name, 'count': 1
-        })
-        cardsCount++
-      }
-    }
-    if (cardsCount >= 30) {
-      console.log('Chegamos a count 30')
-      break
-    }
-  }
-  console.timeEnd('matchingcards')
-  deck = deck.sort((a, b) => { return a.mana > b.mana ? 1 : -1 })
-  return deck
 
+    if (!fs.existsSync(playerInfoLogPath)) {
+        console.log('Cant find the log in path log: ' + playerInfoLogPath)
+        debug('message', `Can't find the master log on ${playerInfoLogPath}.`)
+        return false
+    }
+
+    return true
 }
 
-async function removeCardsPlayed(deck) {
-  const rl = readLine.createInterface({
-    input: fsR(path),
-    crlfDelay: Infinity
-  })
-  for await (const line of rl) {
+// Verify with two methods if the game is over, since the logs sometimes changes, needs to keep this two ways.
+async function verifyGameOver(debug) {
+    debug('message', 'verifyGameOver')
 
-    if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
-      return []
+    let lastLine = await readLastLines.read(masterLogPath, 1)
+    debug('message', `lastLine: ${lastLine} from ${masterLogPath}`)
+    if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+        return true
     }
 
-    if (linesAlreadyRemoved.includes(line) && fullyReaded) {
-      rl.close()
-      return deck
-    }
-
-    // Found a card played
-    if (line.indexOf(PATTERN_ENEMY_CARD_PLAYED_CHANGED) >= 0) {
-      for (var i in deck) {
-        if (deck[i].name === line.substring(line.indexOf(PATTERN_ENEMY_CARD_PLAYED_CHANGED) + PATTERN_ENEMY_CARD_PLAYED_CHANGED.length) && !linesAlreadyRemoved.includes(line)) {
-          linesAlreadyRemoved = linesAlreadyRemoved.concat(line)
-          deck[i].count = deck[i].count - 1
-          if (deck[i].count === 0) {
-            deck.splice(i, 1)
-          }
-        }
-
-      }
-      if (line.indexOf(PATTERN_FIRST_LINE)) {
-        fullyReaded = true
-      }
-    }
-  }
-
-  return deck
-
-}
-async function getDeck() {
-  const enemyInfo = await getEnemyInfo()
-  if (enemyInfo === null || enemyInfo.playerID === '0') {
-    return []
-  }
-  return await getInitialDeck(enemyInfo)
+    lastLine = await readLastLines.read(playerInfoLogPath, 1)
+    debug('message', `lastLine: ${lastLine} from ${playerInfoLogPath}`)
+    return lastLine.indexOf(END_GAME_PATTERN.line) >= 0
 }
 
-async function getFullListCards() {
-  console.time('getFullCards')
-  var cards = []
-  const listProto = await axios.get('https://api.godsunchained.com/v0/proto?perPage=9999')
-  listProto.data.records.forEach(proto => {
-    cards = cards.concat({
-      'id': proto.id, 'god': proto.god, 'rarity': proto.rarity,
-      'mana': proto.mana, 'name': proto.name, 'lib_id': proto.lib_id
+export async function getOpponentInfo(debug) {
+
+    if (!debug) {
+        debug = () => { }
+    }
+
+    debug('message', 'getOpponentInfo')
+
+    if (!verifyPathLogs(debug)) {
+        return { 'id': '0', 'god': '0' }
+    }
+
+    if (await verifyGameOver(debug)) {
+        debug('message', 'Waiting game start...')
+        return { 'id': '0', 'god': '0' }
+    }
+
+    const rl = readLine.createInterface({
+        input: fs.createReadStream(masterLogPath),
+        crlfDelay: Infinity
     })
-  });
-  console.timeEnd('getFullCards')
-  return cards
-}
+    let localPlayerId = null
+    for await (const line of rl) {
 
-function decodeDeck(deckCode) {
-  console.log('decodeDeck: ' + deckCode)
-  const codes = deckCode.split('_')
-  const GU = codes[0]
-  const version = codes[1]
-  const god = codes[2]
-  const cards = codes[3]
-  var result = []
-  for (var i = 0; i < cards.length; i = i + 3) {
-    result[result.length] = 'L' + b52todec(cards.substring(i, i + 1)) + '-' + fillWithZero(b52todec(cards.substring(i + 1, i + 3)))
-  }
-  console.log(result)
-  return result
-}
+        // getting id from local player
+        if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
+            localPlayerId = line.substring(line.indexOf(PATTERN_LOCAL_PLAYERID) + PATTERN_LOCAL_PLAYERID.length)
+            debug('message', 'Your player ID: ' + localPlayerId)
+        }
 
-function b52todec(value) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-  const numbers = '0123456789'
-  var valueSize = value.length
-  var alphabetIndex = {}
-  const alphabetSize = alphabet.length
-  const numbersSize = numbers.length
-  var g = "string" == typeof H ? "" : []
-  for (var i = 0; i < valueSize; i++) {
-    alphabetIndex[i] = alphabet.indexOf(value[i])
-  }
+        if (line.indexOf(PATTERN_OPPONENT_NAME) >= 0) {
+            const opponentNameIndex = line.indexOf(PATTERN_OPPONENT_NAME) + PATTERN_OPPONENT_NAME.length
+            const opponentNickname = line.substring(opponentNameIndex, line.indexOf("'", opponentNameIndex))
+            PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentName}', opponentNickname) // Replacing the opponentName in our pattern
+            debug('message', 'Opponent nickname: ' + opponentNickname)
+        }
 
-  do {
-    for (var j = 0, N = 0, B = 0; B < valueSize; B++) {
-      j = j * alphabetSize + alphabetIndex[B]
-      if (j >= numbersSize) {
-        alphabetIndex[N++] = parseInt(j / numbersSize, 10)
-        j %= numbersSize
-      } else {
-        N > 0 && (value[N++] = 0)
-      }
+        // getting enemy info
+        if (line.indexOf(PATTERN_TARGETDATA) >= 0) {
+            const index = line.indexOf(PATTERN_OPPONENT_PLAYERID) + PATTERN_OPPONENT_PLAYERID.length
+            const opponentId = line.substring(index, line.indexOf("'", index))
+            if (opponentId !== localPlayerId) {
+                const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
+                const opponentGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
+                debug('message', 'Opponent ID: ' + opponentId)
+                debug('message', 'Opponent God: ' + opponentGod)
+                rl.close()
+                return { 'id': opponentId, 'god': opponentGod.toLowerCase() }
+            }
+        }
     }
-    valueSize = N
-    g = numbers.slice(j, j + 1).concat(g)
-  } while (0 !== N);
-  return g
-}
-function fillWithZero(x) {
-  const size = 3 - x.length
-  for (let i = 0; i < size; i++) {
-    x = '0' + x
-  }
-  return x
+    rl.close()
+    // Game didnt start yet, cant find infos.
+    return { 'id': '0', 'god': '0' }
 }
 
+var zaz = 0
+export async function getInitialDeck(opponentInfo, debug) {
 
-module.exports.getDeck = getDeck
-module.exports.removeCardsPlayed = removeCardsPlayed
+    if (!debug) {
+        debug = () => { }
+    }
+
+    if (FULL_CARDS.length === 0) {
+        debug('mensagem', 'Getting card list from API.')
+        FULL_CARDS = await getFullListCards()
+    }
+    const matchs = await getLastsMatchs(opponentInfo.id, opponentInfo.god)
+    if (matchs.length == 0) {
+        debug('mensagem', 'Cant get lasts matchs from this opponent')
+        console.log('Cant get lasts matchs from this opponent')
+        if (!dialogs[opponentInfo.id]) {
+            dialog.showMessageBox(null, {title: 'GU Tracker' ,message: `There aren't any games from this player ${opponentInfo.id} with god ${opponentInfo.god} in lasts 10 days.`})
+            dialogs[opponentInfo.id] = true
+        }
+        return []
+    }
+    const cards = matchs[0].cards
+
+    var deck = []
+    let cardsCount = 0
+    for (var i = 0; i < FULL_CARDS.length; i++) {
+        if (FULL_CARDS[i].god !== 'neutral' && FULL_CARDS[i].god !== opponentInfo.god.toLowerCase()) {
+            continue
+        }
+
+        cardsLabel: for (var z = 0; z < cards.length; z++) {
+            if (FULL_CARDS[i].id === cards[z]) {
+                for (var j = 0; j < deck.length; j++) {
+                    if (deck[j].prot === FULL_CARDS[i].id) {
+                        deck[j].count = deck[j].count + 1
+                        cardsCount++
+                        continue cardsLabel
+                    }
+                }
+                deck = deck.concat({
+                    'prot': FULL_CARDS[i].id, 'god': FULL_CARDS[i].god, 'rarity': FULL_CARDS[i].rarity,
+                    'mana': FULL_CARDS[i].mana, 'name': FULL_CARDS[i].name, 'count': 1
+                })
+                cardsCount++
+            }
+        }
+        if (cardsCount >= 30) {
+            break
+        }
+    }
+    deck = deck.sort((a, b) => { return a.mana > b.mana ? 1 : -1 })
+    return deck
+
+}
+
+export async function removeCardsPlayed(deck, debug) {
+
+    if (!debug) {
+        debug = () => { }
+    }
+
+    if (await verifyGameOver(debug)) {
+        debug('message', 'Game over.')
+        return []
+    }
+
+    const rl = readLine.createInterface({
+        input: fsR(masterLogPath),
+        crlfDelay: Infinity
+    })
+    for await (const line of rl) {
+
+        // Old version used this patter, I gonna keep it if they back into it.
+        if (line.indexOf(PATTERN_LAST_LINES[0]) >= 0 || line.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+            debug('message', 'Game Over - Old version.')
+            rl.close()
+            return []
+        }
+
+        if (linesAlreadyRemoved.includes(line) && fullyReaded) {
+            rl.close()
+            debug('mensagem', 'Already read the entire log.')
+            return deck
+        }
+
+        // Found a card played
+        if (line.indexOf(PATTERN_OPPONENT_CARD_PLAYED_CHANGED) >= 0) {
+            for (var i in deck) {
+                if (deck[i].name === line.substring(line.indexOf(PATTERN_OPPONENT_CARD_PLAYED_CHANGED) + PATTERN_OPPONENT_CARD_PLAYED_CHANGED.length) && !linesAlreadyRemoved.includes(line)) {
+                    linesAlreadyRemoved = linesAlreadyRemoved.concat(line)
+                    deck[i].count = deck[i].count - 1
+                    debug('mensagem', `Card played: ${deck[i].name}. New count left: ${deck[i].count}`)
+                    if (deck[i].count === 0) {
+                        deck.splice(i, 1)
+                    }
+                }
+            }
+            if (line.indexOf(PATTERN_FIRST_LINE)) {
+                fullyReaded = true
+            }
+        }
+    }
+
+    rl.close()
+    return deck
+
+}
+
+export async function getDeck(debug) {
+    if (!debug) {
+        debug = () => { }
+    }
+    const opponentInfo = await getOpponentInfo()
+    if (opponentInfo === null || opponentInfo.id === '0') {
+        debug('mensagem', `getDeck - No opponentInfo found. opponentInfo: ${opponentInfo}`)
+        return []
+    }
+    return await getInitialDeck(opponentInfo)
+}
+
+// function decodeDeck(deckCode) {
+//     const codes = deckCode.split('_')
+//     const GU = codes[0]
+//     const version = codes[1]
+//     const god = codes[2]
+//     const cards = codes[3]
+//     var result = []
+//     for (var i = 0; i < cards.length; i = i + 3) {
+//         result[result.length] = 'L' + b52todec(cards.substring(i, i + 1)) + '-' + fillWithZero(b52todec(cards.substring(i + 1, i + 3)))
+//     }
+//     return result
+// }
+
+// function b52todec(value) {
+//     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+//     const numbers = '0123456789'
+//     var valueSize = value.length
+//     var alphabetIndex = {}
+//     const alphabetSize = alphabet.length
+//     const numbersSize = numbers.length
+//     var g = "string" == typeof H ? "" : []
+//     for (var i = 0; i < valueSize; i++) {
+//         alphabetIndex[i] = alphabet.indexOf(value[i])
+//     }
+
+//     do {
+//         for (var j = 0, N = 0, B = 0; B < valueSize; B++) {
+//             j = j * alphabetSize + alphabetIndex[B]
+//             if (j >= numbersSize) {
+//                 alphabetIndex[N++] = parseInt(j / numbersSize, 10)
+//                 j %= numbersSize
+//             } else {
+//                 N > 0 && (value[N++] = 0)
+//             }
+//         }
+//         valueSize = N
+//         g = numbers.slice(j, j + 1).concat(g)
+//     } while (0 !== N);
+//     return g
+// }
+// function fillWithZero(x) {
+//     const size = 3 - x.length
+//     for (let i = 0; i < size; i++) {
+//         x = '0' + x
+//     }
+//     return x
+// }
