@@ -5,19 +5,19 @@ async function getLastsMatchs(playerId, god) {
     function extractInfo(records) {
         for (var i = 0; i < records.length; i++) {
             const playersInfo = records[i].player_info
-            console.log('god: ' + playersInfo.god)
-            console.log('user_id ' + playersInfo.user_id)
             for (var j = 0; j < playersInfo.length; j++) {
                 if (playersInfo[j].user_id == playerId && playersInfo[j].god == god) {
                     playersInfo[j].start_time = records[i].start_time
+                    console.log(playersInfo[j])
                     return playersInfo[j]
                 }
             }
         }
+        return null
     }
     const sort = (a, b) => { return b.start_time > a.start_time ? 1 : -1 }
     const perPage = 30
-    var matchs = []
+    var matches = []
     const date = new Date()
     let date10DaysAgo = new Date()
     date10DaysAgo.setHours(0, 0, 0, 0)
@@ -26,24 +26,27 @@ async function getLastsMatchs(playerId, god) {
     await getMatches('lost')
     await getMatches('won')
 
-    matchs = matchs.sort(sort)
+    matches = matches.sort(sort)
 
     async function getMatches(status) {
         let page = 1
-        const link = `https://api.godsunchained.com/v0/match?sort=start_time&order=desc&player_${status}=${playerId}&page=${page}&perPage=${perPage}&start_time=${Math.floor(date10DaysAgo / 1000)}-${Math.floor(date / 1000)}`
-        console.log(link)
+        let link
         var listMatches
         do {
+            link = `https://api.godsunchained.com/v0/match?sort=start_time&order=desc&player_${status}=${playerId}&page=${page}&perPage=${perPage}&start_time=${Math.floor(date10DaysAgo / 1000)}-${Math.floor(date / 1000)}`
+            console.log(link)
             listMatches = await axios.get(link)
             if (listMatches.data.records) {
-                matchs = matchs.concat(extractInfo(listMatches.data.records.sort(sort)))
-                console.log(matchs.length)
+                let playerInfoExtracted = extractInfo(listMatches.data.records.sort(sort))
+                if(playerInfoExtracted) {
+                    matches = matches.concat(playerInfoExtracted)
+                }
             }
-        } while ((perPage * page++) < listMatches.total)
+        } while ((perPage * page++) < listMatches.data.total)
     }
 
     console.timeEnd('getLastsMatchs')
-    return matchs
+    return matches
 }
 
 async function getFullListCards() {

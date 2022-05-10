@@ -10,6 +10,7 @@ console.log(url)
 url = url.replace('\\', '/')
 url = url.replace('/index.html', '')
 url = url.substring(url.lastIndexOf('/'))
+console.log('new url: '+url)
 const rootElement = document.getElementById('root')
 
 console.log(url)

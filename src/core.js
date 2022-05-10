@@ -131,6 +131,10 @@ export async function getInitialDeck(opponentInfo, debug) {
     if (FULL_CARDS.length === 0) {
         debug('mensagem', 'Getting card list from API.')
         FULL_CARDS = await getFullListCards()
+        if(!FULL_CARDS || FULL_CARDS.length == 0) {
+            debug('message', 'Cant get the list of cards from API, maybe the server is in maintance.')
+            return []
+        }
     }
     const matchs = await getLastsMatchs(opponentInfo.id, opponentInfo.god)
     if (matchs.length == 0) {
@@ -238,7 +242,7 @@ export async function getDeck(debug) {
         debug('mensagem', `getDeck - No opponentInfo found. opponentInfo: ${opponentInfo}`)
         return []
     }
-    return await getInitialDeck(opponentInfo)
+    return await getInitialDeck(opponentInfo, debug)
 }
 
 // function decodeDeck(deckCode) {
