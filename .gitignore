@@ -1,8 +1,10 @@
 node_modules/
+.webpack/
 
 # Build Folders
 app/
 dist/
+out/
 
 # MacOS Finder
 .DS_Store
