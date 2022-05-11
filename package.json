@@ -1,7 +1,7 @@
 {
   "name": "gutracker",
   "productName": "GU Tracker",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Gods Unchained Tracker, track the deck your opponent should be using.",
   "main": ".webpack/main",
   "scripts": {

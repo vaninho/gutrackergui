@@ -55,7 +55,8 @@ async function getFullListCards() {
     const listProto = await axios.get('https://api.godsunchained.com/v0/proto?perPage=9999')
     if (listProto && listProto.length < 1) {
         console.log('Cant access Gods Unchained API')
-        // FAZER MENSAGEM APARECER NO MAIN
+        debug('message', 'Cant access Gods Unchained API, maybe it in maintance.')
+        return cards
     }
     listProto.data.records.forEach(proto => {
         cards = cards.concat({

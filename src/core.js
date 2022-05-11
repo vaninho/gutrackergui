@@ -130,9 +130,8 @@ export async function getInitialDeck(opponentInfo, debug) {
 
     if (FULL_CARDS.length === 0) {
         debug('mensagem', 'Getting card list from API.')
-        FULL_CARDS = await getFullListCards()
+        FULL_CARDS = await getFullListCards(debug)
         if(!FULL_CARDS || FULL_CARDS.length == 0) {
-            debug('message', 'Cant get the list of cards from API, maybe the server is in maintance.')
             return []
         }
     }
