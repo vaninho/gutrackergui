@@ -1,4 +1,8 @@
 # gutrackergui
+Update 10/06/22
+Looks like the game changed the way it logs things, then the tracker stop working. Im not sure if I will update the tracker since Im not playing the game with the same enthusiasm I had before. So, feel free to do it if you want to. I want to thank you guys for more than 125 downloads, I didnt expect more since this NFT area is so dangerous, lol.
+
+
  GU Tracker
 
 Its a tracker to game Gods Unchained.
