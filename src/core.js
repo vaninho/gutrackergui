@@ -6,24 +6,26 @@ const fsR = require('fs-reverse')
 const { getFullListCards, getLastsMatchs } = require('./gods-unchained-api')
 const { dialog } = require('electron')
 
-const PATH_LOGS = '/AppData/LocalLow/Immutable/gods/'
-const DEBUG_FILE_NAME = 'debug.log'
-const COMBAT_FILE_NAME = 'combat.log'
-const PATTERN_OPPONENT_APOLLO_ID = " o:PlayerInfo(apolloId: "
-const PATTERN_OPPONENT_GOD = 'Log]: Set God Color: '
-const PATTERN_OPPONENT_NICKNAME = 'nickName:'
+const PATH_LOGS = '/AppData/LocalLow/FuelGames/gods/logs/latest/'
+const PATH_MASTERLOG = 'master.txt'
+const PATTERN_OPPONENT_NAME = "player 1 name: '"
+const PATTERN_TARGETDATA = 'TargetData:'
+const PATTERN_OPPONENT_PLAYERID = "playerID:'" // dont forget the ', since its important to index
+const PATTERN_TARGETGOD = "targetGod:'" // dont forget the ', since its important to index
+const PATTERN_LOCAL_PLAYERID = 'Sending RegisterPlayer msg... apolloID: '
 const PATTERN_FIRST_LINE = 'GameConfiguration.LoadGameConfigurationAtRuntime'
-const PATTERN_END_GAME = '---The Game Has Ended---'
-const PATTERN_OPPONENT_CARD_PLAYED = '| CombatRecorder | {opponentNickName} | Event: Played | Card: ' // need to replace the enemyName in execution
+const PATTERN_LAST_LINES = ['Client handlers deregistered', 'Settings.ini successfully saved']
+const PATTERN_OPPONENT_CARD_PLAYED = 'CombatRecorder: {opponentName} -> Event: Played | Card: ' // need to replace the enemyName in execution
 let PATTERN_OPPONENT_CARD_PLAYED_CHANGED = ''
+const END_GAME_PATTERN = { file: 'player/player_info.txt', line: 'OnEndGame()' }
 var FULL_CARDS = []
 var linesAlreadyRemoved = []
 var fullyReaded = false
 var dialogs = []
 
 
-const debugLog = getLogPath() + PATH_LOGS + DEBUG_FILE_NAME
-const combatLog = getLogPath() + PATH_LOGS + END_GAME_PATTERN.file
+const masterLogPath = getLogPath() + PATH_LOGS + PATH_MASTERLOG
+const playerInfoLogPath = getLogPath() + PATH_LOGS + END_GAME_PATTERN.file
 
 function getLogPath() {
     if (os.platform() === 'win32') {
@@ -33,19 +35,34 @@ function getLogPath() {
 
 function verifyPathLogs(debug) {
     debug('message', 'verifyPathLogs')
-    if (!fs.existsSync(debugLog)) {
-        console.log('Cant find the log in path log: ' + debugLog)
-        debug('message', `Can't find the master log on ${debugLog}.`)
+    if (!fs.existsSync(masterLogPath)) {
+        console.log('Cant find the log in path log: ' + masterLogPath)
+        debug('message', `Can't find the master log on ${masterLogPath}.`)
         return false
     }
 
-    if (!fs.existsSync(combatLog)) {
-        console.log('Cant find the log in path log: ' + combatLog)
-        debug('message', `Can't find the master log on ${combatLog}.`)
+    if (!fs.existsSync(playerInfoLogPath)) {
+        console.log('Cant find the log in path log: ' + playerInfoLogPath)
+        debug('message', `Can't find the master log on ${playerInfoLogPath}.`)
         return false
     }
 
     return true
+}
+
+// Verify with two methods if the game is over, since the logs sometimes changes, needs to keep this two ways.
+async function verifyGameOver(debug) {
+    debug('message', 'verifyGameOver')
+
+    let lastLine = await readLastLines.read(masterLogPath, 1)
+    debug('message', `lastLine: ${lastLine} from ${masterLogPath}`)
+    if (lastLine.indexOf(PATTERN_LAST_LINES[0]) >= 0 || lastLine.indexOf(PATTERN_LAST_LINES[1]) >= 0) {
+        return true
+    }
+
+    lastLine = await readLastLines.read(playerInfoLogPath, 1)
+    debug('message', `lastLine: ${lastLine} from ${playerInfoLogPath}`)
+    return lastLine.indexOf(END_GAME_PATTERN.line) >= 0
 }
 
 export async function getOpponentInfo(debug) {
@@ -57,45 +74,54 @@ export async function getOpponentInfo(debug) {
     debug('message', 'getOpponentInfo')
 
     if (!verifyPathLogs(debug)) {
-        return { 'id': '0', 'opponentGod': '0' }
+        return { 'id': '0', 'god': '0' }
     }
 
-    // TODO: Verificar se o game já não acabou.!!
+    if (await verifyGameOver(debug)) {
+        debug('message', 'Waiting game start...')
+        return { 'id': '0', 'god': '0' }
+    }
 
     const rl = readLine.createInterface({
-        input: fs.createReadStream(debugLog),
+        input: fs.createReadStream(masterLogPath),
         crlfDelay: Infinity
     })
-
-    let opponentApolloId = '0', opponentGod = '0'
-    let godCounter = 0
+    let localPlayerId = null
     for await (const line of rl) {
 
-        if(opponentApolloId !== '0' && opponentGod !== '0') {
-            rl.close()
-            return { 'id': opponentApolloId, 'opponentGod': opponentGod }
+        // getting id from local player
+        if (localPlayerId === null && line.indexOf(PATTERN_LOCAL_PLAYERID) >= 0) {
+            localPlayerId = line.substring(line.indexOf(PATTERN_LOCAL_PLAYERID) + PATTERN_LOCAL_PLAYERID.length)
+            debug('message', 'Your player ID: ' + localPlayerId)
         }
 
-        if (line.indexOf(PATTERN_OPPONENT_APOLLO_ID) >= 0) {
-            const opponentApolloIdIndex = line.indexOf(PATTERN_OPPONENT_APOLLO_ID) + PATTERN_OPPONENT_APOLLO_ID.length
-            opponentApolloId = line.substring(opponentApolloIdIndex, line.indexOf(",", opponentApolloIdIndex))
-            const opponentNicknameIndex = line.indexOf('nickname', opponentApolloIdIndex) + PATTERN_OPPONENT_NICKNAME.length
-            opponentNickname = line.substring(opponentNicknameIndex, line.indexOf(',', opponentNicknameIndex))
-            PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentNickName}', opponentNickname) // Replacing the opponentName in our pattern
+        if (line.indexOf(PATTERN_OPPONENT_NAME) >= 0) {
+            const opponentNameIndex = line.indexOf(PATTERN_OPPONENT_NAME) + PATTERN_OPPONENT_NAME.length
+            const opponentNickname = line.substring(opponentNameIndex, line.indexOf("'", opponentNameIndex))
+            PATTERN_OPPONENT_CARD_PLAYED_CHANGED = PATTERN_OPPONENT_CARD_PLAYED.replace('{opponentName}', opponentNickname) // Replacing the opponentName in our pattern
             debug('message', 'Opponent nickname: ' + opponentNickname)
         }
 
-        if(line.indexOf(PATTERN_OPPONENT_GOD) >= 0) {
-            godCounter++
-            if(godCounter === 2) {
-                opponentGod = line.substring(line.indexOf(PATTERN_OPPONENT_GOD)+PATTERN_OPPONENT_GOD.length).toLowerCase()
+        // getting enemy info
+        if (line.indexOf(PATTERN_TARGETDATA) >= 0) {
+            const index = line.indexOf(PATTERN_OPPONENT_PLAYERID) + PATTERN_OPPONENT_PLAYERID.length
+            const opponentId = line.substring(index, line.indexOf("'", index))
+            if (opponentId !== localPlayerId) {
+                const targetGodIndex = line.indexOf(PATTERN_TARGETGOD) + PATTERN_TARGETGOD.length
+                const opponentGod = line.substring(targetGodIndex, line.indexOf("'", targetGodIndex))
+                debug('message', 'Opponent ID: ' + opponentId)
+                debug('message', 'Opponent God: ' + opponentGod)
+                rl.close()
+                return { 'id': opponentId, 'god': opponentGod.toLowerCase() }
             }
         }
     }
     rl.close()
-    return { 'id': opponentApolloId, 'opponentGod': opponentGod }
+    // Game didnt start yet, cant find infos.
+    return { 'id': '0', 'god': '0' }
 }
 
+var zaz = 0
 export async function getInitialDeck(opponentInfo, debug) {
 
     if (!debug) {
@@ -105,7 +131,7 @@ export async function getInitialDeck(opponentInfo, debug) {
     if (FULL_CARDS.length === 0) {
         debug('mensagem', 'Getting card list from API.')
         FULL_CARDS = await getFullListCards(debug)
-        if (!FULL_CARDS || FULL_CARDS.length == 0) {
+        if(!FULL_CARDS || FULL_CARDS.length == 0) {
             return []
         }
     }
@@ -114,7 +140,7 @@ export async function getInitialDeck(opponentInfo, debug) {
         debug('mensagem', 'Cant get lasts matchs from this opponent')
         console.log('Cant get lasts matchs from this opponent')
         if (!dialogs[opponentInfo.id]) {
-            dialog.showMessageBox(null, { title: 'GU Tracker', message: `There aren't any games from this player ${opponentInfo.id} with god ${opponentInfo.god} in lasts 10 days.` })
+            dialog.showMessageBox(null, {title: 'GU Tracker' ,message: `There aren't any games from this player ${opponentInfo.id} with god ${opponentInfo.god} in lasts 10 days.`})
             dialogs[opponentInfo.id] = true
         }
         return []
@@ -159,10 +185,13 @@ export async function removeCardsPlayed(deck, debug) {
         debug = () => { }
     }
 
-    // TODO: VERIFY IF THE GAME IS OVER
+    if (await verifyGameOver(debug)) {
+        debug('message', 'Game over.')
+        return []
+    }
 
     const rl = readLine.createInterface({
-        input: fsR(debugLog),
+        input: fsR(masterLogPath),
         crlfDelay: Infinity
     })
     for await (const line of rl) {
@@ -207,7 +236,7 @@ export async function getDeck(debug) {
     if (!debug) {
         debug = () => { }
     }
-    const opponentInfo = await getOpponentInfo(debug)
+    const opponentInfo = await getOpponentInfo()
     if (opponentInfo === null || opponentInfo.id === '0') {
         debug('mensagem', `getDeck - No opponentInfo found. opponentInfo: ${opponentInfo}`)
         return []
